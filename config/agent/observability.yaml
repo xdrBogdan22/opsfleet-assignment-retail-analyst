@@ -1,0 +1,16 @@
+# Tracing and error monitoring (P14). Both services switch on only when their
+# keys are in .env, so the app runs without accounts:
+#   Langfuse: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
+#   Sentry:   SENTRY_DSN
+
+# Share of turns Sentry traces for performance. Every turn at prototype volume;
+# production would sample, for example 0.1, to stay inside the free plan's
+# 5M spans a month.
+sentry_traces_sample_rate: 1.0
+
+# Prompts and model replies can hold whatever the user typed, so Sentry gets
+# errors and timings only. Langfuse holds the full trace for debugging.
+sentry_include_prompts: false
+
+# Local log with one JSON line per turn, written with or without the services.
+log_file: retail_analyst.log

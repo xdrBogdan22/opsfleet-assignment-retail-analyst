@@ -23,6 +23,7 @@ SECTION_FILES = {
     "dataset_schema": "data/schema.yaml",
     "safety": "data/safety.yaml",
     "seed": "seed/demo.yaml",
+    "observability": "agent/observability.yaml",
     "prompts": "prompts/agent.yaml",
     "tool_descriptions": "prompts/tools.yaml",
 }
@@ -117,6 +118,12 @@ class Seed(Strict):
     persona: Persona
 
 
+class Observability(Strict):
+    sentry_traces_sample_rate: float = Field(ge=0, le=1)
+    sentry_include_prompts: bool
+    log_file: str
+
+
 class Prompts(Strict):
     system: str
     final_answer: str
@@ -129,6 +136,7 @@ class Settings(Strict):
     safety: Safety
     dataset_schema: DatasetSchema
     seed: Seed
+    observability: Observability
     prompts: Prompts
     tool_descriptions: dict[str, str]
 

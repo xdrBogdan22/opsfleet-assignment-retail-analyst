@@ -9,25 +9,32 @@ import tempfile
 import uuid
 import webbrowser
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
 from langchain_core.exceptions import ModelError
-from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
-from retail_analyst.agent.graph import build_graph, new_question
-from retail_analyst.agent.session import UnknownUserError, build_session
+from retail_analyst.agent.graph import AgentState, build_graph, new_question
+from retail_analyst.agent.session import Session, UnknownUserError, build_session
 from retail_analyst.core.config import get_settings
 from retail_analyst.core.db import Pool, open_pool
+from retail_analyst.observability.monitor import Monitor, start_monitor
 from retail_analyst.reports.store import load_report_html
 
 log = logging.getLogger("retail_analyst")
 
-HELP = "Commands: /open <id> opens a saved report, /new starts a new conversation, /quit exits."
+HELP = (
+    "Commands: /open <id> opens a saved report, /good or /bad rates the last answer, "
+    "/new starts a new conversation, /quit exits."
+)
 MODEL_DOWN = "The AI service is not responding right now. Please try again in a minute."
 FAILED = "Something went wrong with that request. Please try again."
+
+Graph = CompiledStateGraph[AgentState, Session]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -36,57 +43,70 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     load_dotenv()
-    logging.basicConfig(filename="retail_analyst.log", level=logging.INFO)
     settings = get_settings()
-    url = os.environ["DATABASE_URL"]
+    monitor = start_monitor(settings)
     salt = os.environ.get("ID_HASH_SALT") or _temporary_salt()
 
-    with open_pool(url) as pool:
+    with open_pool(os.environ["DATABASE_URL"]) as pool:
         try:
             session = build_session(pool, args.user, settings, bigquery.Client(), salt)
         except UnknownUserError:
             print(f"Unknown user {args.user!r}. Run scripts/init_db.py to create the demo users.")
             return 1
         graph = build_graph(PostgresSaver(pool))
-
-        print(f"Signed in as {session.user.name}. {HELP}")
-        conversation = uuid.uuid4().hex
-        while True:
-            try:
-                text = input("\nyou> ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                return 0
-            if not text:
-                continue
-            if text == "/quit":
-                return 0
-            if text == "/new":
-                conversation = uuid.uuid4().hex
-                print("Started a new conversation.")
-                continue
-            if text.startswith("/open"):
-                print(_open_report(pool, session.user.id, text.removeprefix("/open").strip()))
-                continue
-
-            config: RunnableConfig = {"configurable": {"thread_id": f"{session.user.id}:{conversation}"}}
-            try:
-                result = graph.invoke(new_question(text, conversation, settings), config, context=session)
-                while "__interrupt__" in result:
-                    answer = _ask_confirmation(result["__interrupt__"][0].value)
-                    result = graph.invoke(Command(resume=answer), config, context=session)
-                print(f"\nanalyst> {result['messages'][-1].text}")
-            except ModelError:
-                log.exception("model failure")
-                print(f"\nanalyst> {MODEL_DOWN}")
-            except Exception:
-                log.exception("turn failed")
-                print(f"\nanalyst> {FAILED}")
+        services = ", ".join(monitor.services) or "local log only"
+        print(f"Signed in as {session.user.name}. Monitoring: {services}.\n{HELP}")
+        try:
+            _chat(graph, session, monitor, pool)
+        finally:
+            monitor.close()
+    return 0
 
 
-def _ask_confirmation(request: dict[str, object]) -> str:
-    reports = request.get("reports")
-    assert isinstance(reports, list)
+def _chat(graph: Graph, session: Session, monitor: Monitor, pool: Pool) -> None:
+    conversation = uuid.uuid4().hex
+    while True:
+        try:
+            text = input("\nyou> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return
+        if text == "/quit":
+            return
+        if text == "/new":
+            conversation = uuid.uuid4().hex
+            print("Started a new conversation.")
+        elif text in ("/good", "/bad"):
+            print(monitor.feedback(good=text == "/good"))
+        elif text.startswith("/open"):
+            print(_open_report(pool, session.user.id, text.removeprefix("/open").strip()))
+        elif text:
+            print(f"\nanalyst> {_ask(graph, session, monitor, text, conversation)}")
+
+
+def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversation: str) -> str:
+    """Runs one question, including any confirmation pause, and never raises."""
+    turn = monitor.start_turn(session.user.id, conversation)
+    state: dict[str, Any] | None = None
+    try:
+        state = graph.invoke(new_question(text, conversation, session.settings), turn.config, context=session)
+        while "__interrupt__" in state:
+            answer = _ask_confirmation(state["__interrupt__"][0].value)
+            state = graph.invoke(Command(resume=answer), turn.config, context=session)
+    except ModelError:
+        log.exception("model failure")
+        monitor.end_turn(turn, "model_down", state)
+        return MODEL_DOWN
+    except Exception:
+        log.exception("turn failed")
+        monitor.end_turn(turn, "error", state)
+        return FAILED
+    monitor.end_turn(turn, "answered", state)
+    return str(state["messages"][-1].text)
+
+
+def _ask_confirmation(request: dict[str, Any]) -> str:
+    reports = request["reports"]
     print(f"\nanalyst> This will permanently delete {len(reports)} report(s):")
     for report in reports:
         print(f"  {report['id']}: {report['title']}")

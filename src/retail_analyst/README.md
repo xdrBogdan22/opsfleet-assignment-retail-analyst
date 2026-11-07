@@ -6,6 +6,7 @@
 | `agent/` | The LangGraph graph, the per-user session and the system prompt |
 | `core/` | Settings loaded from `config/`, the shared Postgres pool |
 | `safety/` | The SQL guard, which turns model-written SQL into scoped, read-only SQL, and the Presidio output guard |
+| `observability/` | Langfuse traces and scores, Sentry errors, the per-turn JSON log |
 | `reports/` | Report structure, HTML and text rendering with static SVG charts, storage in Postgres, two-step deletion |
 | `tools/` | Tools the model can call, their injected context and the per-question budget |
 | `llm/` | Chat model with the Gemini fallback chain and a circuit breaker per model |

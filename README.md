@@ -65,7 +65,20 @@ uv run --frozen retail-analyst --user denim_manager
 Demo users: `ceo` sees every brand, `denim_manager` and `outdoor_manager` see
 only their brands (`config/seed/demo.yaml`). Ask for a report and open it with
 `/open <id>`. Ask to delete reports, for example "Delete all reports mentioning
-Acme", and confirm the listed reports with `yes`; any other answer cancels. Type `/new` for a new conversation and `/quit` to leave. Errors go to `retail_analyst.log`.
+Acme", and confirm the listed reports with `yes`; any other answer cancels. Type `/new` for a new conversation and `/quit` to leave. 
+
+### Monitoring (optional)
+
+Without keys the app writes one JSON line per turn to `retail_analyst.log`.
+To see full traces and get error alerts, create free accounts and add the keys
+to `.env`:
+
+- [Langfuse Cloud](https://cloud.langfuse.com): `LANGFUSE_PUBLIC_KEY`,
+  `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`
+- [Sentry](https://sentry.io): `SENTRY_DSN`
+
+The CLI prints which services are on when it starts. `/good` and `/bad` attach
+a rating to the last answer's trace.
 
 ### Tests
 

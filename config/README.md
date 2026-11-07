@@ -8,7 +8,8 @@ so a typo stops the app with a clear error instead of a silent default.
 | Folder | File | What it controls |
 |---|---|---|
 | `agent/` | `limits.yaml` | Budget for one question: model calls, repairs, queries, time, cost |
-| `agent/` | `models.yaml` | Gemini models in fallback order, other providers switched off |
+| `agent/` | `models.yaml` | Gemini models in fallback order, other providers switched off, circuit breaker |
+| `agent/` | `observability.yaml` | Sentry sampling, prompt capture, local log file |
 | `data/` | `bigquery.yaml` | Dataset, byte cap, timeout, row limit |
 | `data/` | `schema.yaml` | Columns of the four tables, with descriptions |
 | `data/` | `safety.yaml` | Blocked columns, hashed IDs, demographic rules |

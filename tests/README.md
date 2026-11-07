@@ -7,6 +7,7 @@ The folders mirror `src/retail_analyst/`.
 | `safety/` | SQL guard rules and output guard redaction | Nothing; the spaCy model is a locked dependency |
 | `warehouse/` | Error classification and value conversion for the BigQuery runner | Nothing |
 | `agent/` | Graph routing, budget and refusals with scripted models | Nothing |
+| `observability/` | Turn summary and feedback logging without services | Nothing |
 | `reports/` | Escaping, chart marks, plain text | Nothing |
 | `tools/` | Tool budget, repair accounting, hidden context, schema card | Nothing |
 | `llm/` | Fallback chain wiring, config errors, circuit breaker | Nothing |

@@ -23,7 +23,8 @@ what comes next. Updated after every step.
 | 14 | Reports: `save_report` tool, Jinja HTML with escaping, static SVG bar chart, plain text, Postgres storage, `/open <id>` | 3 render tests, 1 Postgres test for owner isolation, preview images checked by eye. Live: report 2 saved with chart, table and action items. | `203f895` |
 | 15 | Report requests get the 120-second limit, picked by a word match | 1 unit test | `203f895` |
 | 16 | Delete flow: `request_delete` holds the exact list, `interrupt()` asks the user, only a confirm word deletes, once, before expiry, owner only | 2 Postgres tests: only the owner's matching report is listed and deleted; any other answer cancels. Live CLI: cancel, then confirm, deleted exactly the 2 listed reports. | `49433c6` |
-| 17 | Output guard: Presidio with the small spaCy model, pinned in `uv.lock`, on the final answer and on report text before saving. Values from query results are allowed. | 4 unit tests, 1 graph test. Live CEO run: brand names such as Calvin Klein kept, top-5 figures matched BigQuery to the cent. | next commit |
+| 17 | Output guard: Presidio with the small spaCy model, pinned in `uv.lock`, on the final answer and on report text before saving. Values from query results are allowed. | 4 unit tests, 1 graph test. Live CEO run: brand names such as Calvin Klein kept, top-5 figures matched BigQuery to the cent. | `8f13b60` |
+| 18 | Observability: Langfuse callback per turn with session and user, agent metrics and outcome as scores, `/good` and `/bad` as a user score, Sentry with prompts off, a JSON line per turn in the local log | 2 unit tests without services. Live run without keys: turn and feedback lines written; the answer (39 returned orders, outdoor brands) matched BigQuery. | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -54,11 +55,11 @@ what comes next. Updated after every step.
 
 ## Next
 
-1. Observability: Langfuse and Sentry, both optional through `.env`
+1. Turn on Langfuse and Sentry with real keys and check a trace and an alert
 2. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 
-- Langfuse and Sentry, since no keys exist yet. Accounts: cloud.langfuse.com and sentry.io.
+- Langfuse and Sentry with real keys: the code paths run only when keys exist. Accounts: cloud.langfuse.com and sentry.io.
 - Debian or Ubuntu install steps, written from the pgvector docs but not run
 - Mermaid diagrams in `docs/02-architecture.md`, not rendered locally

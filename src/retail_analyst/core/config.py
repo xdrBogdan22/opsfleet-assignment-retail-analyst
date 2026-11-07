@@ -78,6 +78,8 @@ class Safety(Strict):
     min_group_size: int = Field(ge=1)
     max_input_chars: int = Field(gt=0)
     injection_patterns: list[str]
+    delete_confirm_words: list[str]
+    delete_confirmation_minutes: int = Field(gt=0)
 
 
 class Column(Strict):

@@ -10,7 +10,7 @@ The folders mirror `src/retail_analyst/`.
 | `reports/` | Escaping, chart marks, plain text | Nothing |
 | `tools/` | Tool budget, repair accounting, hidden context, schema card | Nothing |
 | `llm/` | Fallback chain wiring, config errors, circuit breaker | Nothing |
-| `integration/` | Guarded queries and runner limits on real BigQuery, model calls and fallback on real Gemini, report storage on local Postgres | `GOOGLE_CLOUD_PROJECT`, signed-in gcloud, `GOOGLE_API_KEY`, `DATABASE_URL` |
+| `integration/` | Guarded queries and runner limits on real BigQuery, model calls and fallback on real Gemini, report storage and the delete confirmation on local Postgres | `GOOGLE_CLOUD_PROJECT`, signed-in gcloud, `GOOGLE_API_KEY`, `DATABASE_URL` |
 
 ```bash
 uv run --frozen pytest                    # everything

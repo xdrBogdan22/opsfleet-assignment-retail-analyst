@@ -11,12 +11,13 @@ from langchain_core.tools import BaseTool, StructuredTool
 
 from retail_analyst.core.config import Settings
 from retail_analyst.tools.data import describe_schema, run_sql
-from retail_analyst.tools.reports import save_report
+from retail_analyst.tools.reports import request_delete, save_report
 
 FUNCTIONS: dict[str, Callable[..., str]] = {
     "run_sql": run_sql,
     "describe_schema": describe_schema,
     "save_report": save_report,
+    "request_delete": request_delete,
 }
 
 

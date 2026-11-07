@@ -20,8 +20,9 @@ what comes next. Updated after every step.
 | 11 | CLI with Postgres checkpoints, friendly messages on model or tool failure | Live run, see below | `54b8a56` |
 | 12 | Circuit breaker per model, except the last | 3 unit tests. Live: after two 504s the primary was skipped for the next question. | `54b8a56` |
 | 13 | GoogleSQL notes in the prompt (P19) | Examples dry-run on BigQuery. Live rerun answered without SQL errors. | `54b8a56` |
-| 14 | Reports: `save_report` tool, Jinja HTML with escaping, static SVG bar chart, plain text, Postgres storage, `/open <id>` | 3 render tests, 1 Postgres test for owner isolation, preview images checked by eye. Live: report 2 saved with chart, table and action items. | next commit |
-| 15 | Report requests get the 120-second limit, picked by a word match | 1 unit test | next commit |
+| 14 | Reports: `save_report` tool, Jinja HTML with escaping, static SVG bar chart, plain text, Postgres storage, `/open <id>` | 3 render tests, 1 Postgres test for owner isolation, preview images checked by eye. Live: report 2 saved with chart, table and action items. | `203f895` |
+| 15 | Report requests get the 120-second limit, picked by a word match | 1 unit test | `203f895` |
+| 16 | Delete flow: `request_delete` holds the exact list, `interrupt()` asks the user, only a confirm word deletes, once, before expiry, owner only | 2 Postgres tests: only the owner's matching report is listed and deleted; any other answer cancels. Live CLI: cancel, then confirm, deleted exactly the 2 listed reports. | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -50,10 +51,9 @@ what comes next. Updated after every step.
 
 ## Next
 
-1. Delete flow with `interrupt()` and stored report IDs
-2. Observability: Langfuse and Sentry, both optional through `.env`
-3. Output guard with Presidio
-4. Docs: technical explanation, requirement traceability, setup, example run
+1. Observability: Langfuse and Sentry, both optional through `.env`
+2. Output guard with Presidio
+3. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 

@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from typing import Any, cast
 
 from langchain_core.messages import AIMessage, ToolMessage
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableConfig, RunnableLambda
 from langgraph.checkpoint.memory import InMemorySaver
 
 from retail_analyst.agent.graph import REFUSAL, build_graph, new_question
@@ -48,8 +48,8 @@ def session(with_tools: ScriptedModel, without_tools: ScriptedModel, model_calls
 
 def ask(sess: Session, text: str) -> list[Any]:
     graph = build_graph(InMemorySaver())
-    config = {"configurable": {"thread_id": "t"}}
-    result = graph.invoke(new_question(text, "c1", sess.settings), config, context=sess)  # type: ignore[call-overload]
+    config: RunnableConfig = {"configurable": {"thread_id": "t"}}
+    result = graph.invoke(new_question(text, "c1", sess.settings), config, context=sess)
     return cast(list[Any], result["messages"])
 
 

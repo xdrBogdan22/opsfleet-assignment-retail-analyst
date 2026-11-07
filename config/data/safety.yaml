@@ -36,3 +36,9 @@ injection_patterns:
   - "(reveal|print|show) (me )?(your|the) (system )?prompt"
   - "you are now (in )?(developer|dan|jailbreak) mode"
   - "disregard (your|the) (rules|instructions)"
+
+# Delete confirmation (P5). The user approves the exact list shown; only these
+# replies confirm, and any other reply cancels, so a typo can never delete.
+# The list expires so an old prompt cannot be confirmed later by accident.
+delete_confirm_words: ["yes", "y", "delete", "confirm"]
+delete_confirmation_minutes: 10

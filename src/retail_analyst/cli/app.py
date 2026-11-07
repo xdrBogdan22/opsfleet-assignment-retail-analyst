@@ -13,7 +13,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google.cloud import bigquery
 from langchain_core.exceptions import ModelError
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.types import Command
 
 from retail_analyst.agent.graph import build_graph, new_question
 from retail_analyst.agent.session import UnknownUserError, build_session
@@ -67,9 +69,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(_open_report(pool, session.user.id, text.removeprefix("/open").strip()))
                 continue
 
-            config = {"configurable": {"thread_id": f"{session.user.id}:{conversation}"}}
+            config: RunnableConfig = {"configurable": {"thread_id": f"{session.user.id}:{conversation}"}}
             try:
-                result = graph.invoke(new_question(text, conversation, settings), config, context=session)  # type: ignore[call-overload]
+                result = graph.invoke(new_question(text, conversation, settings), config, context=session)
+                while "__interrupt__" in result:
+                    answer = _ask_confirmation(result["__interrupt__"][0].value)
+                    result = graph.invoke(Command(resume=answer), config, context=session)
                 print(f"\nanalyst> {result['messages'][-1].text}")
             except ModelError:
                 log.exception("model failure")
@@ -77,6 +82,18 @@ def main(argv: list[str] | None = None) -> int:
             except Exception:
                 log.exception("turn failed")
                 print(f"\nanalyst> {FAILED}")
+
+
+def _ask_confirmation(request: dict[str, object]) -> str:
+    reports = request.get("reports")
+    assert isinstance(reports, list)
+    print(f"\nanalyst> This will permanently delete {len(reports)} report(s):")
+    for report in reports:
+        print(f"  {report['id']}: {report['title']}")
+    try:
+        return input("Type yes to delete them. Anything else cancels: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        return ""
 
 
 def _open_report(pool: Pool, user_id: str, report_id: str) -> str:

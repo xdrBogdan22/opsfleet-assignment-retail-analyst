@@ -35,6 +35,8 @@ dev = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+pythonVersion = "3.12"
+extraPaths = ["src"]
 
 [tool.ruff]
 line-length = 110
@@ -51,6 +53,8 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "C4", "PT", "RET", "PTH", "
 strict = true
 plugins = ["pydantic.mypy"]
 mypy_path = "src"
+# google-api-core exception constructors carry no type hints.
+untyped_calls_exclude = ["google.api_core"]
 
 [[tool.mypy.overrides]]
 module = ["google.cloud.*", "sqlglot.*"]

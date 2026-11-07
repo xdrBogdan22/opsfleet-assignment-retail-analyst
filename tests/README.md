@@ -5,7 +5,8 @@ The folders mirror `src/retail_analyst/`.
 | Folder | What runs | Needs |
 |---|---|---|
 | `safety/` | Unit tests for the SQL guard | Nothing |
-| `integration/` | Rewritten queries on real BigQuery | `GOOGLE_CLOUD_PROJECT` and signed-in gcloud |
+| `warehouse/` | Error classification and value conversion for the BigQuery runner | Nothing |
+| `integration/` | Guarded queries and runner limits on real BigQuery | `GOOGLE_CLOUD_PROJECT` and signed-in gcloud |
 
 ```bash
 uv run --frozen pytest                    # everything

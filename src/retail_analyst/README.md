@@ -4,6 +4,7 @@
 |---|---|
 | `core/` | Settings loaded from `config/` |
 | `safety/` | The SQL guard: turns model-written SQL into scoped, read-only SQL |
+| `warehouse/` | Runs guarded SQL on BigQuery within byte, time and row limits, and classifies errors |
 
 Rules for code in this package:
 

@@ -1,4 +1,4 @@
-"""Runs rewritten queries on real BigQuery.
+"""Runs guarded queries on real BigQuery through the runner.
 
 Skipped without GOOGLE_CLOUD_PROJECT. Each query scans a few MB of the public
 dataset, well inside the free tier.
@@ -12,6 +12,7 @@ from google.cloud import bigquery
 
 from retail_analyst.core.config import get_settings
 from retail_analyst.safety.sql_guard import SafeQuery, Scope, make_safe
+from retail_analyst.warehouse.bigquery_runner import FailureKind, QueryFailedError, run_query
 
 load_dotenv()
 pytestmark = [
@@ -22,20 +23,11 @@ pytestmark = [
 SETTINGS = get_settings()
 DENIM = Scope(user_id="denim_manager", brands=("Diesel", "True Religion", "7 For All Mankind", "Joe's Jeans"))
 CEO = Scope(user_id="ceo", brands=None)
+CLIENT = bigquery.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT"))
 
 
 def run(query: SafeQuery) -> list[dict[str, object]]:
-    params: list[bigquery.ScalarQueryParameter | bigquery.ArrayQueryParameter] = []
-    for name, value in query.params.items():
-        if isinstance(value, list):
-            params.append(bigquery.ArrayQueryParameter(name, "STRING", value))
-        else:
-            params.append(bigquery.ScalarQueryParameter(name, "STRING", value))
-    client = bigquery.Client(project=os.environ["GOOGLE_CLOUD_PROJECT"])
-    config = bigquery.QueryJobConfig(
-        query_parameters=params, maximum_bytes_billed=SETTINGS.bigquery.max_bytes_billed
-    )
-    return [dict(row) for row in client.query(query.sql, job_config=config).result()]
+    return run_query(CLIENT, query, SETTINGS.bigquery).rows
 
 
 def test_manager_sees_only_own_brands() -> None:
@@ -69,3 +61,25 @@ def test_customer_ids_are_hashed_consistently_across_tables() -> None:
 def test_no_future_rows() -> None:
     sql = "SELECT COUNTIF(created_at > CURRENT_TIMESTAMP()) AS future FROM orders"
     assert run(make_safe(sql, CEO, SETTINGS, id_salt="s"))[0]["future"] == 0
+
+
+def test_runner_returns_capped_rows() -> None:
+    query = make_safe("SELECT id, brand FROM products", CEO, SETTINGS, id_salt="s")
+    result = run_query(CLIENT, query, SETTINGS.bigquery)
+    assert len(result.rows) == SETTINGS.bigquery.max_rows
+    assert result.truncated
+
+
+def test_runner_rejects_queries_above_the_byte_cap() -> None:
+    tiny = SETTINGS.bigquery.model_copy(update={"max_bytes_billed": 1000})
+    query = make_safe("SELECT COUNT(*) FROM order_items", CEO, SETTINGS, id_salt="s")
+    with pytest.raises(QueryFailedError) as error:
+        run_query(CLIENT, query, tiny)
+    assert error.value.kind is FailureKind.NARROW
+
+
+def test_runner_flags_unknown_columns_for_repair() -> None:
+    query = make_safe("SELECT revenue FROM order_items", CEO, SETTINGS, id_salt="s")
+    with pytest.raises(QueryFailedError) as error:
+        run_query(CLIENT, query, SETTINGS.bigquery)
+    assert error.value.kind is FailureKind.REPAIR

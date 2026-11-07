@@ -21,6 +21,6 @@ def system_prompt(session: Session, today: dt.date | None = None) -> str:
         queries=settings.limits.queries,
         dataset=settings.bigquery.dataset,
         schema_card=schema_card(settings),
-        persona=session.persona,
+        persona=session.persona(),
         preferences="",
     )

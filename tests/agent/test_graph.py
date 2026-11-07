@@ -37,7 +37,7 @@ def session(with_tools: ScriptedModel, without_tools: ScriptedModel, model_calls
     settings = SETTINGS.model_copy(update={"limits": SETTINGS.limits.model_copy(update={"model_calls": model_calls})})
     return Session(
         user=User(id="denim_manager", name="Alex", brands=("Diesel",)),
-        persona="Be brief.",
+        persona=lambda: "Be brief.",
         settings=settings,
         bigquery=cast(Any, None),  # every query in these tests is rejected by the guard first
         db=cast(Any, None),

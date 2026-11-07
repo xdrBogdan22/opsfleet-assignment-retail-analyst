@@ -48,7 +48,7 @@ def session(pool: Pool, user_id: str) -> Session:
 
     return Session(
         user=User(id=user_id, name=user_id, brands=("Diesel",)),
-        persona="",
+        persona=lambda: "",
         settings=SETTINGS,
         bigquery=cast(Any, None),
         db=pool,

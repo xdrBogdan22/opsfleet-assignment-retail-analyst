@@ -1,5 +1,6 @@
 """Everything the graph needs for one signed-in user, built once per CLI session."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import psycopg
@@ -28,7 +29,7 @@ class User:
 @dataclass(frozen=True)
 class Session:
     user: User
-    persona: str
+    persona: Callable[[], str]  # read on every turn, so a new tone applies at once
     settings: Settings
     bigquery: bigquery.Client
     db: Pool
@@ -63,7 +64,12 @@ def build_session(
     tools = build_tools(settings)
     breakers = build_breakers(settings.models)
     with pool.connection() as conn:
-        user, persona = load_user(conn, user_id), load_persona(conn)
+        user = load_user(conn, user_id)
+
+    def persona() -> str:
+        with pool.connection() as conn:
+            return load_persona(conn)
+
     return Session(
         user=user,
         persona=persona,

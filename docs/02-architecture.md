@@ -149,41 +149,42 @@ The prototype is a local CLI. The brief asks it to support safety and PII
 masking, the delete confirmation, resilience and observability. The other
 requirements are design only, unless P21 lists them as time allows.
 
+The graph below is the code in `src/retail_analyst/agent/graph.py`, node for
+node.
+
 ```mermaid
 flowchart TD
-    start(["User message"]) --> load["load_context: user, scope, persona"]
-    load --> precheck{"input_checks"}
-    precheck -- "Blocked" --> refuse["refuse"]
-    precheck -- "Passed" --> agent["agent: Gemini call"]
+    start(["User question with a fresh budget"]) --> checks{"input_checks"}
+    checks -- "Too long or known injection" --> done(["Show answer"])
+    checks -- "Passed" --> agent["agent: one Gemini call"]
 
-    agent -- "run_sql" --> sql["sql_tool: validate, scope, dry run, run, mask"]
-    sql --> budget{"Budget left?"}
-    budget -- "Yes" --> agent
-    budget -- "No" --> partial["explain what failed and what was found"]
+    agent -- "Tool calls" --> tools["tools: run each call with the injected context"]
+    agent -- "Text answer" --> guard["output_guard: Presidio"]
+    guard --> done
 
-    agent -- "describe_schema" --> schema["schema_tool: allowed tables and columns"]
-    schema --> agent
+    tools -- "request_delete held a list" --> confirm[/"confirm_delete: interrupt"/]
+    tools -- "ask_clarification" --> clarify[/"clarify: interrupt"/]
+    tools -- "Otherwise" --> agent
+    clarify -- "User answer as the tool result" --> agent
 
-    agent -- "ask_clarification" --> clarify[/"interrupt: up to 2 questions with options"/]
-    clarify --> agent
-
-    agent -- "request_delete" --> find["find_reports: this user's matches"]
-    find --> preview["store exact preview"]
-    preview --> confirm[/"interrupt: confirm the listed reports"/]
-    confirm -- "Confirmed" --> remove["delete_reports: stored IDs only"]
-    confirm -- "Anything else" --> cancel["cancel and expire"]
-
-    agent -- "Final answer" --> guard{"output_guard: Presidio"}
-    guard -- "Clean" --> save["save_report if asked"]
-    guard -- "Personal data found" --> redact["redact and log"]
-    redact --> save
-    save --> finish(["Show answer"])
-
-    refuse --> finish
-    partial --> finish
-    remove --> finish
-    cancel --> finish
+    confirm -- "yes, y, delete or confirm" --> remove["Delete the stored IDs once"]
+    confirm -- "Anything else" --> cancel["Cancel the request"]
+    remove --> done
+    cancel --> done
 ```
+
+| Tool | What it does | Where the safety sits |
+|---|---|---|
+| `run_sql` | Runs one or more queries and returns rows | SQL guard, byte cap, row cap, per-question query and repair budget |
+| `describe_schema` | Lists allowed tables and columns | Built from config, blocked columns never listed |
+| `save_report` | Saves a structured report | Output guard on every text field, HTML rendered by code |
+| `request_delete` | Holds the user's matching reports for confirmation | Owner filter, stored IDs, expiry, single use |
+| `ask_clarification` | Asks one question with 2 to 4 options | At most 2 per question |
+
+The agent node counts model calls. When one call is left, or the time limit is
+reached, it calls the model without tools and adds the final-answer
+instruction, so the last call always returns an answer. A question that
+mentions a report gets the 120-second limit instead of 30.
 
 The first model call does the work of an intent classifier. The tool it chooses
 is the intent: `run_sql` for analysis, `describe_schema` for questions about the
@@ -192,8 +193,8 @@ for deletes, and a plain answer for everything else. This saves one model call
 (P4). Off-topic and attack requests get a refusal from the model, and the SQL
 layer blocks anything unsafe whatever the model chooses.
 
-A report is the same loop with a report instruction. The final call returns
-structured sections, and code renders them to HTML (P6).
+A report is the same loop. The model calls `save_report` with structured
+sections, and code renders them to HTML with escaped text and an SVG chart (P6).
 
 | Production | Prototype |
 |---|---|
@@ -242,7 +243,7 @@ other brands. The CEO skips the brand filter but keeps every privacy rule.
 | 1 | Input checks | Code | Oversized input, known injection patterns |
 | 2 | Agent instructions and tool choice | Model | Off-topic requests. Not a security boundary [12]. |
 | 3 | SQL safety layer | Code | PII columns, other brands, writes, cost |
-| 4 | Result masking | Code | Raw IDs and small demographic groups |
+| 4 | Hashed customer IDs | Code, inside the SQL guard | Raw customer IDs. Minimum group size for demographics is design only. |
 | 5 | Output guard | Presidio | Personal data that slipped into the text |
 
 The code layers are the security boundary. The model layer only improves the
@@ -336,8 +337,7 @@ Golden Bucket, so one user cannot teach every user a mistake.
 
 Tone instructions live in the versioned `personas` table and load on each turn.
 In production an authorized editor changes the record in the admin console,
-previews it and publishes it without a redeploy. In the prototype a CLI command or
-pgAdmin changes it. Safety rules live in code and the persona cannot override
+previews it and publishes it without a redeploy. In the prototype pgAdmin changes it, and `scripts/set_persona.py` publishes a new version from the command line. Safety rules live in code and the persona cannot override
 them (P15).
 
 ## Resilience
@@ -345,12 +345,15 @@ them (P15).
 | Failure | Response | Config key |
 |---|---|---|
 | SQL parse or schema error | Send the error to the model as a repair, up to 2 for the question | `limits.sql_repairs` |
-| Empty result | One probe to check filter values, then report that no rows matched | `limits.empty_probes` |
-| Query too large | Reject before running and ask for a narrower query | `bigquery.max_bytes_billed` |
-| Gemini 429 or 5xx | The SDK retries, then the fallback Gemini model (P10) | `models.fallbacks` |
-| Gemini 4xx | No retry, a clear message | None |
-| BigQuery outage | Stop analysis, keep schema help and report commands working | `breaker.*` |
-| Budget reached | Stop and return partial evidence with an explanation | `limits.*` |
+| Empty result | The tool result tells the model to check the filter values once; the query budget bounds it | `limits.queries` |
+| Query too large | Dry run rejects it before it costs anything, and the model is told to narrow it | `bigquery.max_bytes_billed` |
+| Slow query | Job timeout, and client retries cut to the same timeout | `bigquery.query_timeout_seconds` |
+| Gemini 429, 5xx, timeout | The SDK makes 2 attempts, then the next Gemini model (P10) | `models.attempts_per_model` |
+| Gemini keeps failing | Circuit breaker skips that model for 5 minutes | `models.breaker_*` |
+| Gemini 400, 401, 403 | No retry and no fallback, a plain message in the CLI | None |
+| BigQuery quota or outage | The tool tells the model to stop and say the data service is down; `/open` and `describe_schema` still work | None |
+| Budget or time limit reached | The last call has no tools and must answer with what it has | `limits.*` |
+| Any other failure in a turn | The CLI logs it and prints a short message; the chat keeps running | None |
 
 The full error table, from Google's documentation, is in P10.
 
@@ -362,12 +365,16 @@ comment with its reason and source (P20).
 
 | File | Holds | Example default and reason |
 |---|---|---|
-| `models.yaml` | Primary and fallback models, providers switched on or off | `gemini-3.8-flash`, then `gemini-3.5-flash-lite`. Other providers `enabled: false` at the client's request. |
-| `limits.yaml` | Model calls, queries, repairs, time and cost per question | 5 model calls, from the client's 2 to 5 guidance |
-| `bigquery.yaml` | Byte cap, timeout, row limit | Values sized to the dataset and the $1 budget |
-| `retrieval.yaml` | Top k, weights, recency half-life | 0.85 relevance, 0.15 recency, 180 days. Initial values for tuning. |
-| `safety.yaml` | Blocked columns, minimum group size | 10 customers, a working default until the client answers |
-| `prompts/*.yaml` | System prompt, tool descriptions, report template text | Editable without code changes |
+| `agent/models.yaml` | Models in fallback order, providers on or off, attempts, timeout, breaker | `gemini-3.8-flash`, then `gemini-3.5-flash-lite`. Other providers `enabled: false` at the client's request. |
+| `agent/limits.yaml` | Model calls, queries, repairs, clarifications, time and cost per question | 5 model calls, from the client's 2 to 5 guidance |
+| `agent/observability.yaml` | Sentry sampling, prompt capture, log file | Prompts off in Sentry, because they can hold anything the user typed |
+| `data/bigquery.yaml` | Dataset, tables, byte cap, timeout, row limit | 1 GB cap: the four tables hold about 45 MB |
+| `data/schema.yaml` | Columns with descriptions | Read from BigQuery metadata |
+| `data/safety.yaml` | Blocked and hashed columns, injection patterns, delete confirmation, output guard | 0.3 output threshold, from measured Presidio scores |
+| `prompts/agent.yaml`, `prompts/tools.yaml` | System prompt, GoogleSQL notes, tool descriptions | Editable without code changes |
+
+Golden retrieval settings (top k, weights, half-life) join this list when that
+part is built.
 
 ## Observability
 
@@ -376,7 +383,8 @@ comment with its reason and source (P20).
 | Trace of each turn | Langfuse | Read the full message and tool sequence of a failed turn |
 | User rating | Langfuse score from `/good` and `/bad` | Find bad answers |
 | Errors and crashes | Sentry | Email alert on new errors and spikes |
-| Agent metrics | Langfuse | Success rate, refusals, repairs per turn, empty results, fallback use, latency, tokens, bytes scanned, cost per turn |
+| Agent metrics in the prototype | Langfuse scores and the local JSON log | Outcome, model calls, queries, SQL repairs and seconds for each turn; tokens and latency for each model call come from Langfuse's model spans |
+| Agent metrics in production | Langfuse dashboards | Add success rate, refusal rate, empty results, fallback use, bytes scanned and cost per turn |
 
 Detection of unhappy users through scheduled analysis of conversations is design
 only (P14).
@@ -405,9 +413,9 @@ confirmation flow as deletion, because it leaves the system and cannot be undone
 | High-stakes oversight | Bound confirmation with LangGraph interrupt | Implemented |
 | Continuous improvement | LangMem preferences, reviewed system learning | LangMem if time allows |
 | Resilience | Bounded repair, Gemini fallback, degraded mode | Implemented |
-| Quality assurance | Ragas eval with a release gate, UX metrics | Minimal Ragas run if time allows |
+| Quality assurance | Ragas eval with a release gate, UX metrics | Eval dataset; minimal Ragas run if time allows |
 | Observability | Langfuse and Sentry | Implemented |
-| Persona management | Versioned record edited in the admin console | Persona table if time allows |
+| Persona management | Versioned record edited in the admin console | Implemented: versioned table read on every turn, `scripts/set_persona.py` publishes a new tone |
 
 ## References
 

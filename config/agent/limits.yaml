@@ -15,10 +15,6 @@ sql_repairs: 2
 # calls), so a report needs more queries than model calls.
 queries: 5
 
-# One probe query to check filter values after an empty result, as in SDE-SQL
-# (docs/03-design-proposals.md, P9). More probes cost calls without much gain.
-empty_probes: 1
-
 # Clarifying questions the agent may ask before answering. Two, as in P12:
 # AmbiSQL and PRACTIQ ask only when meanings change the result, and more than
 # two questions makes a quick question feel like a form.

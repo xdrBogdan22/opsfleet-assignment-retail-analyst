@@ -25,7 +25,9 @@ what comes next. Updated after every step.
 | 16 | Delete flow: `request_delete` holds the exact list, `interrupt()` asks the user, only a confirm word deletes, once, before expiry, owner only | 2 Postgres tests: only the owner's matching report is listed and deleted; any other answer cancels. Live CLI: cancel, then confirm, deleted exactly the 2 listed reports. | `49433c6` |
 | 17 | Output guard: Presidio with the small spaCy model, pinned in `uv.lock`, on the final answer and on report text before saving. Values from query results are allowed. | 4 unit tests, 1 graph test. Live CEO run: brand names such as Calvin Klein kept, top-5 figures matched BigQuery to the cent. | `8f13b60` |
 | 18 | Observability: Langfuse callback per turn with session and user, agent metrics and outcome as scores, `/good` and `/bad` as a user score, Sentry with prompts off, a JSON line per turn in the local log | 2 unit tests without services. Live run without keys: turn and feedback lines written; the answer (39 returned orders, outdoor brands) matched BigQuery. | `bcb8e5c` |
-| 19 | Clarification (P12): `ask_clarification` pauses with a question and 2 to 4 options, the answer goes back as the tool result, at most 2 per question | 2 graph tests: pause and resume, budget spent. Live: a vague question got an answer with a stated assumption instead of a question, as the prompt asks when one reading is reasonable. | next commit |
+| 19 | Clarification (P12): `ask_clarification` pauses with a question and 2 to 4 options, the answer goes back as the tool result, at most 2 per question | 2 graph tests: pause and resume, budget spent. Live: a vague question got an answer with a stated assumption instead of a question, as the prompt asks when one reading is reasonable. | `5272b1b` |
+| 20 | Architecture doc matches the built graph, tools, resilience table and config files; unused `empty_probes` setting removed | Doc review against the code | next commit |
+| 21 | Persona read on every turn; `scripts/set_persona.py` publishes a version and lists history | Ran it: v2 became active, v1 kept, then v1 restored for the demo | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -53,6 +55,8 @@ what comes next. Updated after every step.
 | The chart preview showed unaligned numeric headers and raw floats | Numeric columns right-aligned, numbers formatted with separators |
 | Presidio scored a bare phone number at 0.4, below the planned 0.5 threshold | Threshold set to 0.3, with the measured scores in the config comment |
 | Live CEO run: the output guard removed the status word "Returned" as a person | A PERSON finding needs at least two words |
+| The prompt offered `ask_clarification` before the tool existed, so a call would have failed | Tool and pause added |
+| The persona was read once per session, so a new tone needed a restart | Read on every turn |
 
 ## Next
 

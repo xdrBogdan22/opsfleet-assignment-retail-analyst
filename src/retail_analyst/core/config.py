@@ -37,7 +37,6 @@ class Limits(Strict):
     model_calls: int = Field(ge=1)
     sql_repairs: int = Field(ge=0)
     queries: int = Field(ge=1)
-    empty_probes: int = Field(ge=0)
     clarifications: int = Field(ge=0)
     question_seconds: int = Field(gt=0)
     report_seconds: int = Field(gt=0)

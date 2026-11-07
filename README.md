@@ -37,5 +37,8 @@ uv run --frozen python scripts/doctor.py
 ## Contents
 
 - [Technology decisions](docs/01-technology-decisions.md)
+- [Architecture](docs/02-architecture.md)
+- [Design proposals](docs/03-design-proposals.md)
+- [Open client questions](docs/client-requirements/open-questions.md)
 - [Client requirements](docs/client-requirements/initial-requirements.md)
 - [BigQuery starter code](docs/client-requirements/big_query.py)

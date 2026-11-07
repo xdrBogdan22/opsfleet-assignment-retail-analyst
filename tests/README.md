@@ -6,8 +6,9 @@ The folders mirror `src/retail_analyst/`.
 |---|---|---|
 | `safety/` | Unit tests for the SQL guard | Nothing |
 | `warehouse/` | Error classification and value conversion for the BigQuery runner | Nothing |
+| `agent/` | Graph routing, budget and refusals with scripted models | Nothing |
 | `tools/` | Tool budget, repair accounting, hidden context, schema card | Nothing |
-| `llm/` | Fallback chain wiring and config errors | Nothing |
+| `llm/` | Fallback chain wiring, config errors, circuit breaker | Nothing |
 | `integration/` | Guarded queries and runner limits on real BigQuery, model calls and fallback on real Gemini | `GOOGLE_CLOUD_PROJECT`, signed-in gcloud, `GOOGLE_API_KEY` |
 
 ```bash

@@ -2,10 +2,12 @@
 
 | Package | Responsibility |
 |---|---|
+| `cli/` | The command-line chat |
+| `agent/` | The LangGraph graph, the per-user session and the system prompt |
 | `core/` | Settings loaded from `config/` |
 | `safety/` | The SQL guard: turns model-written SQL into scoped, read-only SQL |
 | `tools/` | Tools the model can call, their injected context and the per-question budget |
-| `llm/` | Chat model with the Gemini fallback chain |
+| `llm/` | Chat model with the Gemini fallback chain and a circuit breaker per model |
 | `warehouse/` | Runs guarded SQL on BigQuery within byte, time and row limits, and classifies errors |
 
 Rules for code in this package:

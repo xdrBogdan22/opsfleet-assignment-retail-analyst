@@ -27,3 +27,12 @@ min_group_size: 10
 # Longest message accepted, in characters. Executive questions are short;
 # a very long message is more likely an injection attempt or pasted data.
 max_input_chars: 2000
+
+# Phrases of well-known prompt injection attempts, matched case-insensitively.
+# This list catches only the lazy attacks and is not a security boundary
+# (OWASP LLM Prompt Injection Prevention Cheat Sheet); the SQL guard is.
+injection_patterns:
+  - "ignore (all |any )?(previous|prior|above) (instructions|rules)"
+  - "(reveal|print|show) (me )?(your|the) (system )?prompt"
+  - "you are now (in )?(developer|dan|jailbreak) mode"
+  - "disregard (your|the) (rules|instructions)"

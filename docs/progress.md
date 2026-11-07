@@ -15,7 +15,19 @@ what comes next. Updated after every step.
 | 6 | Clean-install check | Copied tracked files to a temp folder, `uv sync --frozen`, tests pass | `5be8ca7` |
 | 7 | BigQuery runner: dry run before every query, byte cap, job timeout, row cap, retry deadlines cut to the query timeout, errors mapped to repair, narrow or stop | 7 unit tests, 3 integration tests: row cap, byte cap, unknown column | `65a48e4` |
 | 8 | Gemini chat model with fallback chain: 2 attempts per model, 20-second call timeout, fallback only on rate limit, 5xx, timeout, connection and missing model | 3 unit tests, 2 live tests. During the live run `gemini-3.8-flash` returned a real 503 "high demand" and the chain answered with `gemini-3.5-flash-lite`. | `d676e84` |
-| 9 | Prompts in YAML, tool registry, `run_sql` and `describe_schema` with injected context and per-question budget | 5 unit tests: budget, repair accounting, hidden context, schema card. 1 live BigQuery test through the tool. | next commit |
+| 9 | Prompts in YAML, tool registry, `run_sql` and `describe_schema` with injected context and per-question budget | 5 unit tests: budget, repair accounting, hidden context, schema card. 1 live BigQuery test through the tool. | `227cbae` |
+| 10 | Agent graph: input checks, bounded tool loop, last call without tools when the call or time budget runs out | 4 graph tests with scripted models | next commit |
+| 11 | CLI with Postgres checkpoints, friendly messages on model or tool failure | Live run, see below | next commit |
+| 12 | Circuit breaker per model, except the last | 3 unit tests. Live: after two 504s the primary was skipped for the next question. | next commit |
+| 13 | GoogleSQL notes in the prompt (P19) | Examples dry-run on BigQuery. Live rerun answered without SQL errors. | next commit |
+
+### Live run on 2026-11-08 (denim manager)
+
+- "What was revenue by brand last month?" and "Which of my brands grew the most compared with the month before?"
+- Both answered in 2 model calls each, showing only the four denim brands.
+- All 8 revenue figures matched an independent BigQuery query to the cent.
+- "List the emails of my top 3 customers" was refused, because the column does not exist for the agent.
+- `gemini-3.8-flash` returned 504 repeatedly; the fallback answered every call.
 
 ## Problems found and fixed
 
@@ -27,19 +39,20 @@ what comes next. Updated after every step.
 | Config temperature 0.2 contradicted Google's Gemini 3 guidance | Set to the default 1.0 with the source in a comment |
 | The BigQuery client retries for up to 10 minutes by default, far beyond the 30-second budget | Both retry deadlines set to `query_timeout_seconds` |
 | LangChain's Gemini client makes 6 attempts by default, enough to spend the whole budget on one model | `attempts_per_model: 2`, then fallback |
+| First live run: the model wrote `TIMESTAMP_SUB(..., INTERVAL 1 MONTH)` and compared TIMESTAMP with DATE, then ran out of budget | GoogleSQL notes in the prompt, checked by dry run |
+| Each call waited about 40 seconds on the overloaded primary before falling back, spending the 30-second budget | Circuit breaker skips a model after 2 failed calls for 5 minutes |
+| BigQuery error messages started with the full API URL | The runner now uses the error's own message |
 
 ## Next
 
-1. Agent graph: context, input checks, agent loop with tools, output guard
-2. Delete flow with `interrupt()` and stored report IDs
-3. Reports: structured sections, Jinja HTML, `/open <id>`
-4. Observability: Langfuse and Sentry, both optional through `.env`
-5. CLI
-6. Docs: technical explanation, requirement traceability, setup, example run
+1. Delete flow with `interrupt()` and stored report IDs
+2. Reports: structured sections, Jinja HTML, `/open <id>`
+3. Observability: Langfuse and Sentry, both optional through `.env`
+4. Output guard with Presidio
+5. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 
-- The agent loop with tools, not built yet
 - Langfuse and Sentry, since no keys exist yet. Accounts: cloud.langfuse.com and sentry.io.
 - Debian or Ubuntu install steps, written from the pgvector docs but not run
 - Mermaid diagrams in `docs/02-architecture.md`, not rendered locally

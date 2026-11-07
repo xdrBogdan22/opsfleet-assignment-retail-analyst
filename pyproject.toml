@@ -20,6 +20,9 @@ dependencies = [
     "sqlglot>=30.30.0",
 ]
 
+[project.scripts]
+retail-analyst = "retail_analyst.cli.app:main"
+
 [build-system]
 requires = ["uv_build>=0.8,<1"]
 build-backend = "uv_build"
@@ -39,7 +42,7 @@ pythonVersion = "3.12"
 extraPaths = ["src"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 src = ["src", "scripts", "tests"]
 # The client's starter code stays exactly as received.
 extend-exclude = ["docs"]

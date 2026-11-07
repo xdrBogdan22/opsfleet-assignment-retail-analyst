@@ -56,9 +56,7 @@ def run_query(client: bigquery.Client, query: SafeQuery, settings: BigQuerySetti
         estimate = (
             client.query(
                 query.sql,
-                job_config=bigquery.QueryJobConfig(
-                    query_parameters=params, dry_run=True, use_query_cache=False
-                ),
+                job_config=bigquery.QueryJobConfig(query_parameters=params, dry_run=True, use_query_cache=False),
                 retry=DEFAULT_RETRY.with_timeout(timeout),
             ).total_bytes_processed
             or 0
@@ -111,8 +109,9 @@ def _classify(error: gexc.GoogleAPICallError) -> QueryFailedError:
 
     https://docs.cloud.google.com/bigquery/docs/error-messages
     """
-    reasons = {str(item.get("reason", "")) for item in error.errors or [] if isinstance(item, dict)}
-    message = _first_line(error.message or str(error))
+    details = [item for item in error.errors or [] if isinstance(item, dict)]
+    reasons = {str(item.get("reason", "")) for item in details}
+    message = _first_line(str(details[0].get("message", "")) if details else error.message or str(error))
 
     if "bytesBilledLimitExceeded" in reasons or "responseTooLarge" in reasons:
         return QueryFailedError(f"The query is too large: {message}", FailureKind.NARROW)

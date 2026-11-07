@@ -38,3 +38,11 @@ attempts_per_model: 2
 # Longest wait for one model call. Leaves room in the 30-second question budget
 # for the BigQuery query and the final answer.
 call_timeout_seconds: 20
+
+# Circuit breaker for each model except the last. After this many failed calls
+# in a row (each already includes the SDK attempts above), the model is
+# skipped for the cooldown, so every question does not wait on a model that is
+# down. Google describes 503 overload as usually temporary, so a few minutes is
+# enough to try again. The last model is never skipped.
+breaker_failures: 2
+breaker_cooldown_seconds: 300

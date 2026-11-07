@@ -20,8 +20,7 @@ def rejected(sql: str, scope: Scope = DENIM) -> QueryRejectedError:
 
 def test_scopes_every_table_to_the_managers_brands() -> None:
     query = safe(
-        "SELECT p.brand, SUM(oi.sale_price) FROM order_items oi "
-        "JOIN products p ON p.id = oi.product_id GROUP BY 1"
+        "SELECT p.brand, SUM(oi.sale_price) FROM order_items oi JOIN products p ON p.id = oi.product_id GROUP BY 1"
     )
     assert query.sql.count("IN UNNEST(@allowed_brands)") == 2
     assert query.params["allowed_brands"] == ["Diesel", "Joe's Jeans"]
@@ -121,8 +120,7 @@ def test_customer_id_with_raw_demographics_is_rejected(sql: str) -> None:
     "sql",
     [
         "SELECT user_id, SUM(sale_price) FROM order_items GROUP BY 1",
-        "SELECT state, COUNT(DISTINCT user_id) FROM order_items oi "
-        "JOIN users u ON u.id = oi.user_id GROUP BY 1",
+        "SELECT state, COUNT(DISTINCT user_id) FROM order_items oi JOIN users u ON u.id = oi.user_id GROUP BY 1",
         "SELECT u.id, AVG(u.age) FROM users u GROUP BY 1",
     ],
 )

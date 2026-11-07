@@ -53,6 +53,8 @@ class Models(Strict):
     temperature: float = Field(ge=0, le=2)
     attempts_per_model: int = Field(ge=1)
     call_timeout_seconds: int = Field(gt=0)
+    breaker_failures: int = Field(ge=1)
+    breaker_cooldown_seconds: float = Field(gt=0)
 
     @property
     def enabled(self) -> list[ModelEntry]:
@@ -74,6 +76,7 @@ class Safety(Strict):
     demographic_columns: list[str]
     min_group_size: int = Field(ge=1)
     max_input_chars: int = Field(gt=0)
+    injection_patterns: list[str]
 
 
 class Column(Strict):

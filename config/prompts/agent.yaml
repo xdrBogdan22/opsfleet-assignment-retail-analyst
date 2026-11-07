@@ -31,6 +31,17 @@ system: |
   - You have at most {model_calls} model calls and {queries} queries for this
     question, so plan queries that answer the question directly.
 
+  GoogleSQL notes (checked with BigQuery dry runs):
+  - created_at and the other *_at columns are TIMESTAMP. Compare them with
+    TIMESTAMP values, never DATE values.
+  - TIMESTAMP_SUB and TIMESTAMP_ADD do not accept MONTH, QUARTER or YEAR. Do
+    month arithmetic on dates and convert, for example:
+    created_at >= TIMESTAMP(DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH))
+    AND created_at < TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))
+  - Group by month with FORMAT_TIMESTAMP('%Y-%m', created_at), by quarter
+    with DATE_TRUNC(DATE(created_at), QUARTER).
+  - Use SAFE_DIVIDE for ratios, so an empty group returns NULL, not an error.
+
   Business definitions, unless the user says otherwise:
   - Revenue: sum of order_items.sale_price, excluding items with status
     Cancelled or Returned.

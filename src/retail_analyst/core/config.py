@@ -80,6 +80,10 @@ class Safety(Strict):
     injection_patterns: list[str]
     delete_confirm_words: list[str]
     delete_confirmation_minutes: int = Field(gt=0)
+    output_entities: list[str]
+    output_score_threshold: float = Field(ge=0, le=1)
+    output_replacement: str
+    person_min_words: int = Field(ge=1)
 
 
 class Column(Strict):

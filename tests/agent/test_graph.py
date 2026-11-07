@@ -95,3 +95,10 @@ def test_report_requests_get_the_longer_time_limit() -> None:
     limits = SETTINGS.limits
     assert new_question("Create a report for Q1", "c", SETTINGS)["time_limit"] == limits.report_seconds
     assert new_question("Revenue by brand?", "c", SETTINGS)["time_limit"] == limits.question_seconds
+
+
+def test_personal_data_in_the_final_answer_is_removed() -> None:
+    model = ScriptedModel(iter([AIMessage("Email the buyer at jane.doe@example.com.")]))
+    messages = ask(session(model, ScriptedModel(iter([]))), "Who should I contact?")
+    assert "jane.doe@example.com" not in messages[-1].text
+    assert len([m for m in messages if isinstance(m, AIMessage)]) == 1

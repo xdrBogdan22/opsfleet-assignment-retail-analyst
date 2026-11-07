@@ -9,6 +9,7 @@ from pydantic import Field
 from retail_analyst.reports.deletion import find_and_hold
 from retail_analyst.reports.model import Report, Section
 from retail_analyst.reports.store import save_report as store_report
+from retail_analyst.safety.output_guard import redact_strings
 from retail_analyst.tools.context import ToolContext
 
 DELETE_REQUEST = "delete_request_id"
@@ -21,7 +22,9 @@ def save_report(
     action_items: Annotated[list[str], Field(max_length=10)],
     ctx: Annotated[ToolContext, InjectedToolArg],
 ) -> str:
-    report = Report(title=title, summary=summary, sections=sections, action_items=action_items)
+    draft = Report(title=title, summary=summary, sections=sections, action_items=action_items)
+    allowed = ctx.known_values | {ctx.author}
+    report = Report.model_validate(redact_strings(draft.model_dump(), ctx.settings.safety, allowed))
     report_id = store_report(ctx.db, ctx.scope.user_id, ctx.author, ctx.conversation_id, report)
     return json.dumps({"report_id": report_id, "message": f"Saved. The user can open it with /open {report_id}."})
 

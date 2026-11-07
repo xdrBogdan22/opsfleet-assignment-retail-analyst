@@ -7,6 +7,7 @@ run out, so the last call always produces an answer instead of another query.
 """
 
 import json
+import logging
 import re
 import time
 from typing import Literal
@@ -23,8 +24,11 @@ from retail_analyst.agent.prompt import system_prompt
 from retail_analyst.agent.session import Session
 from retail_analyst.core.config import Settings
 from retail_analyst.reports.deletion import cancel, confirm, load_preview
+from retail_analyst.safety.output_guard import redact, result_strings
 from retail_analyst.tools.context import Budget, ToolContext
 from retail_analyst.tools.reports import DELETE_REQUEST
+
+log = logging.getLogger(__name__)
 
 REFUSAL = "I can only help with analysis of the company's sales, customers and products."
 TOO_LONG = "That message is too long. Please ask a shorter question."
@@ -92,9 +96,24 @@ def agent(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
     return {"messages": [reply], "model_calls": state["model_calls"] + 1}
 
 
-def after_agent(state: AgentState) -> Literal["tools", "__end__"]:
+def after_agent(state: AgentState) -> Literal["tools", "output_guard"]:
     last = state["messages"][-1]
-    return "tools" if isinstance(last, AIMessage) and last.tool_calls else "__end__"
+    return "tools" if isinstance(last, AIMessage) and last.tool_calls else "output_guard"
+
+
+def output_guard(state: AgentState, runtime: Runtime[Session]) -> dict[str, list[AnyMessage]]:
+    """Removes personal data from the final answer. The message keeps its id, so it is replaced."""
+    session = runtime.context
+    last = state["messages"][-1]
+    result = redact(str(last.text), session.settings.safety, _known_values(state) | {session.user.name})
+    if not result.removed:
+        return {"messages": []}
+    log.warning("output guard removed %s", ", ".join(result.removed))
+    return {"messages": [AIMessage(content=result.text, id=last.id)]}
+
+
+def _known_values(state: AgentState) -> set[str]:
+    return result_strings([str(m.text) for m in state["messages"] if isinstance(m, ToolMessage)])
 
 
 def tools(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
@@ -109,6 +128,7 @@ def tools(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
         db=session.db,
         id_salt=session.id_salt,
         budget=budget,
+        known_values=_known_values(state),
     )
     last = state["messages"][-1]
     assert isinstance(last, AIMessage)
@@ -167,9 +187,11 @@ def build_graph(checkpointer: BaseCheckpointSaver[str]) -> CompiledStateGraph[Ag
     graph.add_node("agent", agent)
     graph.add_node("tools", tools)
     graph.add_node("confirm_delete", confirm_delete)
+    graph.add_node("output_guard", output_guard)
     graph.add_edge(START, "input_checks")
     graph.add_conditional_edges("input_checks", after_input_checks)
     graph.add_conditional_edges("agent", after_agent)
     graph.add_conditional_edges("tools", after_tools)
     graph.add_edge("confirm_delete", END)
+    graph.add_edge("output_guard", END)
     return graph.compile(checkpointer=checkpointer)

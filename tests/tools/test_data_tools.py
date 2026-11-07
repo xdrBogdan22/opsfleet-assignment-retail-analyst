@@ -21,6 +21,7 @@ def context(queries: int = 5, repairs: int = 2) -> ToolContext:
         db=cast(Any, None),
         id_salt="s",
         budget=Budget(queries_left=queries, repairs_left=repairs),
+        known_values=set(),
     )
 
 

@@ -35,3 +35,4 @@ class ToolContext:
     db: Pool
     id_salt: str
     budget: Budget
+    known_values: set[str]  # text from query results, allowed by the output guard

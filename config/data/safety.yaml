@@ -42,3 +42,19 @@ injection_patterns:
 # The list expires so an old prompt cannot be confirmed later by accident.
 delete_confirm_words: ["yes", "y", "delete", "confirm"]
 delete_confirmation_minutes: 10
+
+# Final output check with Presidio (P4), the last layer before the user sees an
+# answer. LOCATION and DATE_TIME are left out on purpose: states, cities and
+# months are normal aggregate results. Text that came from query results is
+# allowed, because the SQL guard already removed personal columns; that keeps
+# brands such as "Calvin Klein" from being mistaken for people.
+output_entities: [PERSON, EMAIL_ADDRESS, PHONE_NUMBER, CREDIT_CARD, IBAN_CODE, IP_ADDRESS, US_SSN]
+# Presidio's default threshold is 0. A US phone number with no context word
+# scores 0.4 and an email 1.0 (checked on 2026-11-08), so 0.3 still catches a
+# bare phone number while skipping the weakest pattern guesses.
+output_score_threshold: 0.3
+output_replacement: "[removed]"
+# The small spaCy model tags some single capitalized words as people, for
+# example the order status "Returned" in a live run on 2026-11-08. One word
+# cannot identify a customer, so a PERSON finding needs at least two words.
+person_min_words: 2

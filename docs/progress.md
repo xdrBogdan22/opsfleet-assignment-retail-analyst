@@ -22,7 +22,8 @@ what comes next. Updated after every step.
 | 13 | GoogleSQL notes in the prompt (P19) | Examples dry-run on BigQuery. Live rerun answered without SQL errors. | `54b8a56` |
 | 14 | Reports: `save_report` tool, Jinja HTML with escaping, static SVG bar chart, plain text, Postgres storage, `/open <id>` | 3 render tests, 1 Postgres test for owner isolation, preview images checked by eye. Live: report 2 saved with chart, table and action items. | `203f895` |
 | 15 | Report requests get the 120-second limit, picked by a word match | 1 unit test | `203f895` |
-| 16 | Delete flow: `request_delete` holds the exact list, `interrupt()` asks the user, only a confirm word deletes, once, before expiry, owner only | 2 Postgres tests: only the owner's matching report is listed and deleted; any other answer cancels. Live CLI: cancel, then confirm, deleted exactly the 2 listed reports. | next commit |
+| 16 | Delete flow: `request_delete` holds the exact list, `interrupt()` asks the user, only a confirm word deletes, once, before expiry, owner only | 2 Postgres tests: only the owner's matching report is listed and deleted; any other answer cancels. Live CLI: cancel, then confirm, deleted exactly the 2 listed reports. | `49433c6` |
+| 17 | Output guard: Presidio with the small spaCy model, pinned in `uv.lock`, on the final answer and on report text before saving. Values from query results are allowed. | 4 unit tests, 1 graph test. Live CEO run: brand names such as Calvin Klein kept, top-5 figures matched BigQuery to the cent. | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -48,12 +49,13 @@ what comes next. Updated after every step.
 | BigQuery error messages started with the full API URL | The runner now uses the error's own message |
 | First report attempt: the fallback model called `save_report` with one `content` argument, validation rejected it, and the 30-second limit left no time to retry | Report requests get 120 seconds, the breaker opens after one failed call, the prompt lists the report fields |
 | The chart preview showed unaligned numeric headers and raw floats | Numeric columns right-aligned, numbers formatted with separators |
+| Presidio scored a bare phone number at 0.4, below the planned 0.5 threshold | Threshold set to 0.3, with the measured scores in the config comment |
+| Live CEO run: the output guard removed the status word "Returned" as a person | A PERSON finding needs at least two words |
 
 ## Next
 
 1. Observability: Langfuse and Sentry, both optional through `.env`
-2. Output guard with Presidio
-3. Docs: technical explanation, requirement traceability, setup, example run
+2. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 

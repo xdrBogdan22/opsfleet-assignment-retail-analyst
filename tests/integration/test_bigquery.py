@@ -99,6 +99,7 @@ def test_run_sql_tool_returns_scoped_rows() -> None:
         db=cast(Any, None),
         id_salt="s",
         budget=Budget.for_question(SETTINGS),
+        known_values=set(),
     )
     sql = "SELECT DISTINCT p.brand FROM products p"
     [result] = json.loads(run_sql([sql], ctx))

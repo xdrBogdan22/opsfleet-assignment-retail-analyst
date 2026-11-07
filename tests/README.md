@@ -4,7 +4,7 @@ The folders mirror `src/retail_analyst/`.
 
 | Folder | What runs | Needs |
 |---|---|---|
-| `safety/` | Unit tests for the SQL guard | Nothing |
+| `safety/` | SQL guard rules and output guard redaction | Nothing; the spaCy model is a locked dependency |
 | `warehouse/` | Error classification and value conversion for the BigQuery runner | Nothing |
 | `agent/` | Graph routing, budget and refusals with scripted models | Nothing |
 | `reports/` | Escaping, chart marks, plain text | Nothing |

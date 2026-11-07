@@ -91,7 +91,8 @@ def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversati
     try:
         state = graph.invoke(new_question(text, conversation, session.settings), turn.config, context=session)
         while "__interrupt__" in state:
-            answer = _ask_confirmation(state["__interrupt__"][0].value)
+            request = state["__interrupt__"][0].value
+            answer = _ask_confirmation(request) if request["kind"] == "confirm_delete" else _ask_question(request)
             state = graph.invoke(Command(resume=answer), turn.config, context=session)
     except ModelError:
         log.exception("model failure")
@@ -103,6 +104,18 @@ def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversati
         return FAILED
     monitor.end_turn(turn, "answered", state)
     return str(state["messages"][-1].text)
+
+
+def _ask_question(request: dict[str, Any]) -> str:
+    options = request["options"]
+    print(f"\nanalyst> {request['question']}")
+    for number, option in enumerate(options, start=1):
+        print(f"  {number}. {option}")
+    try:
+        answer = input("Pick a number or type your own answer: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        return ""
+    return options[int(answer) - 1] if answer.isdigit() and 0 < int(answer) <= len(options) else answer
 
 
 def _ask_confirmation(request: dict[str, Any]) -> str:

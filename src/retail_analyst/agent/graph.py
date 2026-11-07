@@ -1,5 +1,5 @@
-"""The LangGraph agent: input checks, a bounded tool loop, the delete
-confirmation and the final answer.
+"""The LangGraph agent: input checks, a bounded tool loop, two pauses for the
+user (a clarifying question and the delete confirmation) and the final answer.
 
 Each user question starts with a fresh budget in the state. The agent node
 stops offering tools when the model-call budget or the time limit is about to
@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import time
-from typing import Literal
+from typing import Any, Literal
 
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -34,6 +34,7 @@ REFUSAL = "I can only help with analysis of the company's sales, customers and p
 TOO_LONG = "That message is too long. Please ask a shorter question."
 CANCELLED = "Cancelled. Nothing was deleted."
 EXPIRED = "That delete request has expired or was already used. Nothing was deleted."
+NO_MORE_QUESTIONS = "No more clarifying questions. State your assumption in the answer."
 
 
 class AgentState(MessagesState):
@@ -44,6 +45,8 @@ class AgentState(MessagesState):
     started_at: float
     time_limit: int
     pending_delete: str | None
+    pending_question: dict[str, Any] | None
+    clarifications_left: int
 
 
 def new_question(text: str, conversation_id: str, settings: Settings) -> AgentState:
@@ -58,6 +61,8 @@ def new_question(text: str, conversation_id: str, settings: Settings) -> AgentSt
         started_at=time.monotonic(),
         time_limit=_time_limit(text, settings),
         pending_delete=None,
+        pending_question=None,
+        clarifications_left=settings.limits.clarifications,
     )
 
 
@@ -134,22 +139,46 @@ def tools(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
     assert isinstance(last, AIMessage)
 
     results: list[AnyMessage] = []
-    pending_delete = None
+    pending_delete = pending_question = None
+    clarifications_left = state["clarifications_left"]
     for call in last.tool_calls:
-        output = _run_tool(session, call["name"], call["args"], ctx)
-        results.append(ToolMessage(content=output, tool_call_id=call["id"] or "", name=call["name"]))
-        if call["name"] == "request_delete":
+        call_id, name = call["id"] or "", call["name"]
+        output = _run_tool(session, name, call["args"], ctx)
+        if name == "ask_clarification" and clarifications_left > 0 and "error" not in json.loads(output):
+            # Answered by the clarify node after the pause, as this call's tool result.
+            pending_question = {"call_id": call_id, **json.loads(output)}
+            clarifications_left -= 1
+            continue
+        if name == "ask_clarification" and clarifications_left <= 0:
+            output = json.dumps({"error": NO_MORE_QUESTIONS})
+        results.append(ToolMessage(content=output, tool_call_id=call_id, name=name))
+        if name == "request_delete":
             pending_delete = json.loads(output).get(DELETE_REQUEST)
     return {
         "messages": results,
         "queries_left": budget.queries_left,
         "repairs_left": budget.repairs_left,
         "pending_delete": pending_delete,
+        "pending_question": pending_question,
+        "clarifications_left": clarifications_left,
     }
 
 
-def after_tools(state: AgentState) -> Literal["confirm_delete", "agent"]:
-    return "confirm_delete" if state["pending_delete"] else "agent"
+def after_tools(state: AgentState) -> Literal["confirm_delete", "clarify", "agent"]:
+    if state["pending_delete"]:
+        return "confirm_delete"
+    return "clarify" if state["pending_question"] else "agent"
+
+
+def clarify(state: AgentState) -> dict[str, object]:
+    """Pauses with the agent's question and passes the user's answer back as the tool result."""
+    pending = state["pending_question"]
+    assert pending is not None
+    answer = interrupt({"kind": "clarify", "question": pending["question"], "options": pending["options"]})
+    reply = ToolMessage(
+        content=json.dumps({"user_answer": str(answer)}), tool_call_id=pending["call_id"], name="ask_clarification"
+    )
+    return {"messages": [reply], "pending_question": None}
 
 
 def confirm_delete(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
@@ -187,11 +216,13 @@ def build_graph(checkpointer: BaseCheckpointSaver[str]) -> CompiledStateGraph[Ag
     graph.add_node("agent", agent)
     graph.add_node("tools", tools)
     graph.add_node("confirm_delete", confirm_delete)
+    graph.add_node("clarify", clarify)
     graph.add_node("output_guard", output_guard)
     graph.add_edge(START, "input_checks")
     graph.add_conditional_edges("input_checks", after_input_checks)
     graph.add_conditional_edges("agent", after_agent)
     graph.add_conditional_edges("tools", after_tools)
     graph.add_edge("confirm_delete", END)
+    graph.add_edge("clarify", "agent")
     graph.add_edge("output_guard", END)
     return graph.compile(checkpointer=checkpointer)

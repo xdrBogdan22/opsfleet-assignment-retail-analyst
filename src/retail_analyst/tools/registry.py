@@ -10,12 +10,14 @@ from collections.abc import Callable
 from langchain_core.tools import BaseTool, StructuredTool
 
 from retail_analyst.core.config import Settings
+from retail_analyst.tools.conversation import ask_clarification
 from retail_analyst.tools.data import describe_schema, run_sql
 from retail_analyst.tools.reports import request_delete, save_report
 
 FUNCTIONS: dict[str, Callable[..., str]] = {
     "run_sql": run_sql,
     "describe_schema": describe_schema,
+    "ask_clarification": ask_clarification,
     "save_report": save_report,
     "request_delete": request_delete,
 }

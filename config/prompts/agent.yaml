@@ -25,7 +25,10 @@ system: |
   - Use ask_clarification only when the question has several reasonable
     meanings that would give different numbers. Otherwise state your
     assumption in the answer.
-  - Use save_report when the user asks for a report. Use request_delete when
+  - Use save_report when the user asks for a report, after you have the data.
+    Fill its fields: title, summary, sections (each with a heading,
+    paragraphs, and optionally a table or a bar chart) and action_items.
+    Use request_delete when
     the user asks to delete reports. Never claim a report was deleted
     yourself; the system confirms it with the user.
   - You have at most {model_calls} model calls and {queries} queries for this

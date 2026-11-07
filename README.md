@@ -63,8 +63,8 @@ uv run --frozen retail-analyst --user denim_manager
 ```
 
 Demo users: `ceo` sees every brand, `denim_manager` and `outdoor_manager` see
-only their brands (`config/seed/demo.yaml`). Type `/new` for a new conversation
-and `/quit` to leave. Errors go to `retail_analyst.log`.
+only their brands (`config/seed/demo.yaml`). Ask for a report and open it with
+`/open <id>`. Type `/new` for a new conversation and `/quit` to leave. Errors go to `retail_analyst.log`.
 
 ### Tests
 

@@ -39,6 +39,7 @@ class Limits(Strict):
     empty_probes: int = Field(ge=0)
     question_seconds: int = Field(gt=0)
     report_seconds: int = Field(gt=0)
+    report_pattern: str
     cost_usd: float = Field(gt=0)
 
 

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ report.title }}</title>
+<style>
+  :root {
+    --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --rule: #e4e3df; --series: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --rule: #353532; --series: #3987e5; }
+  }
+  body { background: var(--surface); color: var(--ink); font: 16px/1.55 system-ui, sans-serif;
+         max-width: 760px; margin: 0 auto; padding: 32px 16px; }
+  header p, .meta { color: var(--ink-2); }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .summary { font-size: 1.1rem; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .92rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  figure { margin: 16px 0; }
+  figcaption { color: var(--ink-2); font-size: .92rem; margin-bottom: 6px; }
+  .chart { width: 100%; height: auto; }
+  .chart .bar { fill: var(--series); }
+  .chart .axis { stroke: var(--rule); stroke-width: 1; }
+  .chart text { font-size: 13px; dominant-baseline: middle; fill: var(--ink-2); }
+  .chart .label { text-anchor: end; }
+  .chart .value { fill: var(--ink); font-weight: 600; }
+  details { color: var(--ink-2); font-size: .9rem; }
+  .actions li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ report.title }}</h1>
+  <p class="meta">{{ author }}, {{ created }}</p>
+</header>
+<p class="summary">{{ report.summary }}</p>
+
+{% for section in report.sections %}
+<section>
+  <h2>{{ section.heading }}</h2>
+  {% for paragraph in section.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+
+  {% if section.chart %}
+  <figure>
+    <figcaption>{{ section.chart.title }}</figcaption>
+    {{ bar_chart(section.chart) }}
+    <details>
+      <summary>Show data</summary>
+      <table>
+        <tr><th>Item</th><th class="num">Value</th></tr>
+        {% for label, value in section.chart.labels | zip(section.chart.values) %}
+        <tr><td>{{ label }}</td><td class="num">{{ value | cell }}</td></tr>
+        {% endfor %}
+      </table>
+    </details>
+  </figure>
+  {% endif %}
+
+  {% if section.table %}
+  <table>
+    <tr>{% for column in section.table.columns %}<th{% if loop.index0 is numeric_column(section.table) %} class="num"{% endif %}>{{ column }}</th>{% endfor %}</tr>
+    {% for row in section.table.rows %}
+    <tr>{% for cell in row %}<td{% if cell is number %} class="num"{% endif %}>{{ cell | cell }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if report.action_items %}
+<section class="actions">
+  <h2>Action items</h2>
+  <ol>{% for item in report.action_items %}<li>{{ item }}</li>{% endfor %}</ol>
+</section>
+{% endif %}
+</body>
+</html>

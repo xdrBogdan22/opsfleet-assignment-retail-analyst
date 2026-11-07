@@ -38,6 +38,7 @@ def session(with_tools: ScriptedModel, without_tools: ScriptedModel, model_calls
         persona="Be brief.",
         settings=settings,
         bigquery=cast(Any, None),  # every query in these tests is rejected by the guard first
+        db=cast(Any, None),
         id_salt="s",
         tools={tool.name: tool for tool in build_tools(settings)},
         model_with_tools=with_tools.runnable(),
@@ -47,7 +48,8 @@ def session(with_tools: ScriptedModel, without_tools: ScriptedModel, model_calls
 
 def ask(sess: Session, text: str) -> list[Any]:
     graph = build_graph(InMemorySaver())
-    result = graph.invoke(new_question(text, sess.settings), {"configurable": {"thread_id": "t"}}, context=sess)  # type: ignore[call-overload]
+    config = {"configurable": {"thread_id": "t"}}
+    result = graph.invoke(new_question(text, "c1", sess.settings), config, context=sess)  # type: ignore[call-overload]
     return cast(list[Any], result["messages"])
 
 
@@ -87,3 +89,9 @@ def test_invalid_tool_arguments_are_reported_to_the_model() -> None:
     messages = ask(session(model, ScriptedModel(iter([]))), "Revenue")
     tool_message = next(m for m in messages if isinstance(m, ToolMessage))
     assert "Invalid arguments" in tool_message.text
+
+
+def test_report_requests_get_the_longer_time_limit() -> None:
+    limits = SETTINGS.limits
+    assert new_question("Create a report for Q1", "c", SETTINGS)["time_limit"] == limits.report_seconds
+    assert new_question("Revenue by brand?", "c", SETTINGS)["time_limit"] == limits.question_seconds

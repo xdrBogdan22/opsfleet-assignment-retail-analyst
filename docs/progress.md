@@ -16,10 +16,12 @@ what comes next. Updated after every step.
 | 7 | BigQuery runner: dry run before every query, byte cap, job timeout, row cap, retry deadlines cut to the query timeout, errors mapped to repair, narrow or stop | 7 unit tests, 3 integration tests: row cap, byte cap, unknown column | `65a48e4` |
 | 8 | Gemini chat model with fallback chain: 2 attempts per model, 20-second call timeout, fallback only on rate limit, 5xx, timeout, connection and missing model | 3 unit tests, 2 live tests. During the live run `gemini-3.8-flash` returned a real 503 "high demand" and the chain answered with `gemini-3.5-flash-lite`. | `d676e84` |
 | 9 | Prompts in YAML, tool registry, `run_sql` and `describe_schema` with injected context and per-question budget | 5 unit tests: budget, repair accounting, hidden context, schema card. 1 live BigQuery test through the tool. | `227cbae` |
-| 10 | Agent graph: input checks, bounded tool loop, last call without tools when the call or time budget runs out | 4 graph tests with scripted models | next commit |
-| 11 | CLI with Postgres checkpoints, friendly messages on model or tool failure | Live run, see below | next commit |
-| 12 | Circuit breaker per model, except the last | 3 unit tests. Live: after two 504s the primary was skipped for the next question. | next commit |
-| 13 | GoogleSQL notes in the prompt (P19) | Examples dry-run on BigQuery. Live rerun answered without SQL errors. | next commit |
+| 10 | Agent graph: input checks, bounded tool loop, last call without tools when the call or time budget runs out | 4 graph tests with scripted models | `54b8a56` |
+| 11 | CLI with Postgres checkpoints, friendly messages on model or tool failure | Live run, see below | `54b8a56` |
+| 12 | Circuit breaker per model, except the last | 3 unit tests. Live: after two 504s the primary was skipped for the next question. | `54b8a56` |
+| 13 | GoogleSQL notes in the prompt (P19) | Examples dry-run on BigQuery. Live rerun answered without SQL errors. | `54b8a56` |
+| 14 | Reports: `save_report` tool, Jinja HTML with escaping, static SVG bar chart, plain text, Postgres storage, `/open <id>` | 3 render tests, 1 Postgres test for owner isolation, preview images checked by eye. Live: report 2 saved with chart, table and action items. | next commit |
+| 15 | Report requests get the 120-second limit, picked by a word match | 1 unit test | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -28,6 +30,7 @@ what comes next. Updated after every step.
 - All 8 revenue figures matched an independent BigQuery query to the cent.
 - "List the emails of my top 3 customers" was refused, because the column does not exist for the agent.
 - `gemini-3.8-flash` returned 504 repeatedly; the fallback answered every call.
+- "Create a short report on October 2026 revenue by brand compared with September, with action items for November" saved report 2. Its October total, $25,371.58, equals the sum of the four verified brand figures.
 
 ## Problems found and fixed
 
@@ -42,14 +45,15 @@ what comes next. Updated after every step.
 | First live run: the model wrote `TIMESTAMP_SUB(..., INTERVAL 1 MONTH)` and compared TIMESTAMP with DATE, then ran out of budget | GoogleSQL notes in the prompt, checked by dry run |
 | Each call waited about 40 seconds on the overloaded primary before falling back, spending the 30-second budget | Circuit breaker skips a model after 2 failed calls for 5 minutes |
 | BigQuery error messages started with the full API URL | The runner now uses the error's own message |
+| First report attempt: the fallback model called `save_report` with one `content` argument, validation rejected it, and the 30-second limit left no time to retry | Report requests get 120 seconds, the breaker opens after one failed call, the prompt lists the report fields |
+| The chart preview showed unaligned numeric headers and raw floats | Numeric columns right-aligned, numbers formatted with separators |
 
 ## Next
 
 1. Delete flow with `interrupt()` and stored report IDs
-2. Reports: structured sections, Jinja HTML, `/open <id>`
-3. Observability: Langfuse and Sentry, both optional through `.env`
-4. Output guard with Presidio
-5. Docs: technical explanation, requirement traceability, setup, example run
+2. Observability: Langfuse and Sentry, both optional through `.env`
+3. Output guard with Presidio
+4. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 

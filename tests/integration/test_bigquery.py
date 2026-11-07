@@ -6,6 +6,7 @@ dataset, well inside the free tier.
 
 import json
 import os
+from typing import Any, cast
 
 import pytest
 from dotenv import load_dotenv
@@ -90,7 +91,14 @@ def test_runner_flags_unknown_columns_for_repair() -> None:
 
 def test_run_sql_tool_returns_scoped_rows() -> None:
     ctx = ToolContext(
-        scope=DENIM, settings=SETTINGS, bigquery=CLIENT, id_salt="s", budget=Budget.for_question(SETTINGS)
+        scope=DENIM,
+        author="Alex",
+        conversation_id="c1",
+        settings=SETTINGS,
+        bigquery=CLIENT,
+        db=cast(Any, None),
+        id_salt="s",
+        budget=Budget.for_question(SETTINGS),
     )
     sql = "SELECT DISTINCT p.brand FROM products p"
     [result] = json.loads(run_sql([sql], ctx))

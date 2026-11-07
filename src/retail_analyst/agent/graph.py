@@ -27,22 +27,32 @@ TOO_LONG = "That message is too long. Please ask a shorter question."
 
 
 class AgentState(MessagesState):
+    conversation_id: str
     model_calls: int
     queries_left: int
     repairs_left: int
     started_at: float
+    time_limit: int
 
 
-def new_question(text: str, settings: Settings) -> dict[str, object]:
+def new_question(text: str, conversation_id: str, settings: Settings) -> dict[str, object]:
     """Graph input for one user question, with a fresh budget."""
     budget = Budget.for_question(settings)
     return {
         "messages": [HumanMessage(text)],
+        "conversation_id": conversation_id,
         "model_calls": 0,
         "queries_left": budget.queries_left,
         "repairs_left": budget.repairs_left,
         "started_at": time.monotonic(),
+        "time_limit": _time_limit(text, settings),
     }
+
+
+def _time_limit(text: str, settings: Settings) -> int:
+    limits = settings.limits
+    is_report = re.search(limits.report_pattern, text, re.IGNORECASE)
+    return limits.report_seconds if is_report else limits.question_seconds
 
 
 def input_checks(state: AgentState, runtime: Runtime[Session]) -> dict[str, list[AnyMessage]]:
@@ -65,7 +75,7 @@ def agent(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
     messages: list[AnyMessage] = [SystemMessage(system_prompt(session)), *state["messages"]]
 
     elapsed = time.monotonic() - state["started_at"]
-    last_call = state["model_calls"] >= limits.model_calls - 1 or elapsed >= limits.question_seconds
+    last_call = state["model_calls"] >= limits.model_calls - 1 or elapsed >= state["time_limit"]
     if last_call:
         messages.append(HumanMessage(session.settings.prompts.final_answer))
         reply = session.model_without_tools.invoke(messages)
@@ -84,8 +94,11 @@ def tools(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
     budget = Budget(queries_left=state["queries_left"], repairs_left=state["repairs_left"])
     ctx = ToolContext(
         scope=session.user.scope,
+        author=session.user.name,
+        conversation_id=state["conversation_id"],
         settings=session.settings,
         bigquery=session.bigquery,
+        db=session.db,
         id_salt=session.id_salt,
         budget=budget,
     )

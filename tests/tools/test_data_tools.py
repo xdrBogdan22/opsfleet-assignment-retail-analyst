@@ -14,8 +14,11 @@ def context(queries: int = 5, repairs: int = 2) -> ToolContext:
     # The guard rejects these queries before BigQuery is reached, so no client is needed.
     return ToolContext(
         scope=Scope(user_id="denim_manager", brands=("Diesel",)),
+        author="Alex",
+        conversation_id="c1",
         settings=SETTINGS,
         bigquery=cast(Any, None),
+        db=cast(Any, None),
         id_salt="s",
         budget=Budget(queries_left=queries, repairs_left=repairs),
     )

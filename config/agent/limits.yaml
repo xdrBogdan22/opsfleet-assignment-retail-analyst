@@ -24,6 +24,11 @@ empty_probes: 1
 question_seconds: 30
 report_seconds: 120
 
+# A question gets the report time limit when it matches this pattern
+# (case-insensitive). A plain word match is deterministic and costs no model
+# call; a question that says "report" is almost always asking for one.
+report_pattern: "\\breport\\b"
+
 # Client budget of about $1 per question. Expected cost is near $0.08, so this
 # only stops runaway loops. Design only: the prototype logs cost but does not
 # enforce this value.

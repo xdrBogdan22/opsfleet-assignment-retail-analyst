@@ -5,8 +5,10 @@ from dataclasses import dataclass
 import psycopg
 from google.cloud import bigquery
 from langchain_core.tools import BaseTool
+from psycopg.rows import DictRow
 
 from retail_analyst.core.config import Settings
+from retail_analyst.core.db import Pool
 from retail_analyst.llm.models import ChatModel, build_breakers, build_chat_model
 from retail_analyst.safety.sql_guard import Scope
 from retail_analyst.tools.registry import build_tools
@@ -29,6 +31,7 @@ class Session:
     persona: str
     settings: Settings
     bigquery: bigquery.Client
+    db: Pool
     id_salt: str
     tools: dict[str, BaseTool]
     model_with_tools: ChatModel
@@ -39,32 +42,34 @@ class UnknownUserError(Exception):
     pass
 
 
-def load_user(conn: psycopg.Connection, user_id: str) -> User:
+def load_user(conn: psycopg.Connection[DictRow], user_id: str) -> User:
     row = conn.execute("select name, all_brands from app_users where id = %s", (user_id,)).fetchone()
     if row is None:
         raise UnknownUserError(user_id)
-    name, all_brands = row
-    if all_brands:
-        return User(id=user_id, name=name, brands=None)
-    brands = conn.execute("select brand from user_brands where user_id = %s order by brand", (user_id,)).fetchall()
-    return User(id=user_id, name=name, brands=tuple(brand for (brand,) in brands))
+    if row["all_brands"]:
+        return User(id=user_id, name=row["name"], brands=None)
+    rows = conn.execute("select brand from user_brands where user_id = %s order by brand", (user_id,)).fetchall()
+    return User(id=user_id, name=row["name"], brands=tuple(r["brand"] for r in rows))
 
 
-def load_persona(conn: psycopg.Connection) -> str:
+def load_persona(conn: psycopg.Connection[DictRow]) -> str:
     row = conn.execute("select instructions from personas where active").fetchone()
-    return row[0] if row else ""
+    return str(row["instructions"]) if row else ""
 
 
 def build_session(
-    conn: psycopg.Connection, user_id: str, settings: Settings, bigquery_client: bigquery.Client, id_salt: str
+    pool: Pool, user_id: str, settings: Settings, bigquery_client: bigquery.Client, id_salt: str
 ) -> Session:
     tools = build_tools(settings)
     breakers = build_breakers(settings.models)
+    with pool.connection() as conn:
+        user, persona = load_user(conn, user_id), load_persona(conn)
     return Session(
-        user=load_user(conn, user_id),
-        persona=load_persona(conn),
+        user=user,
+        persona=persona,
         settings=settings,
         bigquery=bigquery_client,
+        db=pool,
         id_salt=id_salt,
         tools={tool.name: tool for tool in tools},
         model_with_tools=build_chat_model(settings.models, tools, breakers),

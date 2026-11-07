@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from google.cloud import bigquery
 
 from retail_analyst.core.config import Settings
+from retail_analyst.core.db import Pool
 from retail_analyst.safety.sql_guard import Scope
 
 
@@ -27,7 +28,10 @@ class Budget:
 @dataclass
 class ToolContext:
     scope: Scope
+    author: str
+    conversation_id: str
     settings: Settings
     bigquery: bigquery.Client
+    db: Pool
     id_salt: str
     budget: Budget

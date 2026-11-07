@@ -13,7 +13,8 @@ what comes next. Updated after every step.
 | 4 | SQL guard: read-only, allowed tables, blocked columns, hashed IDs, brand scope, future rows | 28 unit tests, 4 integration tests on real BigQuery | `5be8ca7` |
 | 5 | Strict lint and types | `ruff check`, `ruff format --check`, `mypy --strict` clean | `5be8ca7` |
 | 6 | Clean-install check | Copied tracked files to a temp folder, `uv sync --frozen`, tests pass | `5be8ca7` |
-| 7 | BigQuery runner: dry run before every query, byte cap, job timeout, row cap, retry deadlines cut to the query timeout, errors mapped to repair, narrow or stop | 7 unit tests, 3 integration tests: row cap, byte cap, unknown column | next commit |
+| 7 | BigQuery runner: dry run before every query, byte cap, job timeout, row cap, retry deadlines cut to the query timeout, errors mapped to repair, narrow or stop | 7 unit tests, 3 integration tests: row cap, byte cap, unknown column | `65a48e4` |
+| 8 | Gemini chat model with fallback chain: 2 attempts per model, 20-second call timeout, fallback only on rate limit, 5xx, timeout, connection and missing model | 3 unit tests, 2 live tests. During the live run `gemini-3.8-flash` returned a real 503 "high demand" and the chain answered with `gemini-3.5-flash-lite`. | next commit |
 
 ## Problems found and fixed
 
@@ -24,20 +25,20 @@ what comes next. Updated after every step.
 | Appending to `.env` without a trailing newline merged two lines | Repaired the file, values never printed |
 | Config temperature 0.2 contradicted Google's Gemini 3 guidance | Set to the default 1.0 with the source in a comment |
 | The BigQuery client retries for up to 10 minutes by default, far beyond the 30-second budget | Both retry deadlines set to `query_timeout_seconds` |
+| LangChain's Gemini client makes 6 attempts by default, enough to spend the whole budget on one model | `attempts_per_model: 2`, then fallback |
 
 ## Next
 
-1. Gemini model wrapper with the fallback chain from `config/agent/models.yaml`
-2. Agent graph: context, input checks, agent loop with tools, output guard
-3. Delete flow with `interrupt()` and stored report IDs
-4. Reports: structured sections, Jinja HTML, `/open <id>`
-5. Observability: Langfuse and Sentry, both optional through `.env`
-6. CLI
-7. Docs: technical explanation, requirement traceability, setup, example run
+1. Agent graph: context, input checks, agent loop with tools, output guard
+2. Delete flow with `interrupt()` and stored report IDs
+3. Reports: structured sections, Jinja HTML, `/open <id>`
+4. Observability: Langfuse and Sentry, both optional through `.env`
+5. CLI
+6. Docs: technical explanation, requirement traceability, setup, example run
 
 ## Not tested yet
 
-- Anything with Gemini calls in the agent loop
+- The agent loop with tools, not built yet
 - Langfuse and Sentry, since no keys exist yet. Accounts: cloud.langfuse.com and sentry.io.
 - Debian or Ubuntu install steps, written from the pgvector docs but not run
 - Mermaid diagrams in `docs/02-architecture.md`, not rendered locally

@@ -49,7 +49,8 @@ class ModelEntry(Strict):
 class Models(Strict):
     models: list[ModelEntry]
     temperature: float = Field(ge=0, le=2)
-    sdk_retries: int = Field(ge=0)
+    attempts_per_model: int = Field(ge=1)
+    call_timeout_seconds: int = Field(gt=0)
 
     @property
     def enabled(self) -> list[ModelEntry]:

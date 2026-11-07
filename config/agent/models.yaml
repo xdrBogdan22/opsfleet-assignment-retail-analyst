@@ -11,7 +11,8 @@ models:
     enabled: true
 
   # Fallback. Rate limits apply per model, so a 429 on the primary can still
-  # succeed here. Cheaper at $0.30 and $2.50 per 1M tokens.
+  # succeed here. Cheaper at $0.30 and $2.50 per 1M tokens. It uses fixed
+# sampling, so it ignores the temperature below.
   - provider: google_genai
     name: gemini-3.5-flash-lite
     enabled: true
@@ -28,6 +29,12 @@ models:
 # because they come from BigQuery, not from the model.
 temperature: 1.0
 
-# The Gemini SDK already retries transient errors up to 4 times, so the agent
-# adds no retry of its own and moves to the next model instead (P10).
-sdk_retries: 4
+# Attempts per model, including the first, done by the Gemini SDK with
+# exponential backoff. LangChain's default is 6, which can spend the whole
+# 30-second budget waiting on one model. Two attempts absorb a brief blip; after
+# that the fallback model, which has its own rate limit, is the better bet (P10).
+attempts_per_model: 2
+
+# Longest wait for one model call. Leaves room in the 30-second question budget
+# for the BigQuery query and the final answer.
+call_timeout_seconds: 20

@@ -8,11 +8,11 @@ what comes next. Updated after every step.
 | Step | What | How it was tested | Commit |
 |---|---|---|---|
 | 1 | Design decisions P1 to P22, architecture, client answers | Review with the owner | `5f5fce0` |
-| 2 | Config files with commented defaults, typed loader with env overrides | Loader test, env override test | this commit |
-| 3 | Postgres schema and idempotent init script | Ran twice on local Postgres 18.3 with pgvector 0.8.7 | this commit |
-| 4 | SQL guard: read-only, allowed tables, blocked columns, hashed IDs, brand scope, future rows | 28 unit tests, 4 integration tests on real BigQuery | this commit |
-| 5 | Strict lint and types | `ruff check`, `ruff format --check`, `mypy --strict` clean | this commit |
-| 6 | Clean-install check | Copied tracked files to a temp folder, `uv sync --frozen`, tests pass | this commit |
+| 2 | Config files with commented defaults, typed loader with env overrides | Loader test, env override test | `5be8ca7` |
+| 3 | Postgres schema and idempotent init script | Ran twice on local Postgres 18.3 with pgvector 0.8.7 | `5be8ca7` |
+| 4 | SQL guard: read-only, allowed tables, blocked columns, hashed IDs, brand scope, future rows | 28 unit tests, 4 integration tests on real BigQuery | `5be8ca7` |
+| 5 | Strict lint and types | `ruff check`, `ruff format --check`, `mypy --strict` clean | `5be8ca7` |
+| 6 | Clean-install check | Copied tracked files to a temp folder, `uv sync --frozen`, tests pass | `5be8ca7` |
 
 ## Problems found and fixed
 

@@ -4,6 +4,7 @@
 |---|---|
 | `core/` | Settings loaded from `config/` |
 | `safety/` | The SQL guard: turns model-written SQL into scoped, read-only SQL |
+| `tools/` | Tools the model can call, their injected context and the per-question budget |
 | `llm/` | Chat model with the Gemini fallback chain |
 | `warehouse/` | Runs guarded SQL on BigQuery within byte, time and row limits, and classifies errors |
 

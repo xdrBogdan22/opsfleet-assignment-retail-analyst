@@ -23,6 +23,8 @@ SECTION_FILES = {
     "dataset_schema": "data/schema.yaml",
     "safety": "data/safety.yaml",
     "seed": "seed/demo.yaml",
+    "prompts": "prompts/agent.yaml",
+    "tool_descriptions": "prompts/tools.yaml",
 }
 
 
@@ -105,6 +107,11 @@ class Seed(Strict):
     persona: Persona
 
 
+class Prompts(Strict):
+    system: str
+    final_answer: str
+
+
 class Settings(Strict):
     limits: Limits
     models: Models
@@ -112,6 +119,8 @@ class Settings(Strict):
     safety: Safety
     dataset_schema: DatasetSchema
     seed: Seed
+    prompts: Prompts
+    tool_descriptions: dict[str, str]
 
 
 def _load_section(name: str) -> dict[str, object]:

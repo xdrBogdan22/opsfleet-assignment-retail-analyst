@@ -14,7 +14,8 @@ what comes next. Updated after every step.
 | 5 | Strict lint and types | `ruff check`, `ruff format --check`, `mypy --strict` clean | `5be8ca7` |
 | 6 | Clean-install check | Copied tracked files to a temp folder, `uv sync --frozen`, tests pass | `5be8ca7` |
 | 7 | BigQuery runner: dry run before every query, byte cap, job timeout, row cap, retry deadlines cut to the query timeout, errors mapped to repair, narrow or stop | 7 unit tests, 3 integration tests: row cap, byte cap, unknown column | `65a48e4` |
-| 8 | Gemini chat model with fallback chain: 2 attempts per model, 20-second call timeout, fallback only on rate limit, 5xx, timeout, connection and missing model | 3 unit tests, 2 live tests. During the live run `gemini-3.8-flash` returned a real 503 "high demand" and the chain answered with `gemini-3.5-flash-lite`. | next commit |
+| 8 | Gemini chat model with fallback chain: 2 attempts per model, 20-second call timeout, fallback only on rate limit, 5xx, timeout, connection and missing model | 3 unit tests, 2 live tests. During the live run `gemini-3.8-flash` returned a real 503 "high demand" and the chain answered with `gemini-3.5-flash-lite`. | `d676e84` |
+| 9 | Prompts in YAML, tool registry, `run_sql` and `describe_schema` with injected context and per-question budget | 5 unit tests: budget, repair accounting, hidden context, schema card. 1 live BigQuery test through the tool. | next commit |
 
 ## Problems found and fixed
 

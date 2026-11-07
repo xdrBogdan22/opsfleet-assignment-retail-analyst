@@ -4,6 +4,7 @@ Skipped without GOOGLE_CLOUD_PROJECT. Each query scans a few MB of the public
 dataset, well inside the free tier.
 """
 
+import json
 import os
 
 import pytest
@@ -12,6 +13,8 @@ from google.cloud import bigquery
 
 from retail_analyst.core.config import get_settings
 from retail_analyst.safety.sql_guard import SafeQuery, Scope, make_safe
+from retail_analyst.tools.context import Budget, ToolContext
+from retail_analyst.tools.data import run_sql
 from retail_analyst.warehouse.bigquery_runner import FailureKind, QueryFailedError, run_query
 
 load_dotenv()
@@ -83,3 +86,12 @@ def test_runner_flags_unknown_columns_for_repair() -> None:
     with pytest.raises(QueryFailedError) as error:
         run_query(CLIENT, query, SETTINGS.bigquery)
     assert error.value.kind is FailureKind.REPAIR
+
+
+def test_run_sql_tool_returns_scoped_rows() -> None:
+    ctx = ToolContext(
+        scope=DENIM, settings=SETTINGS, bigquery=CLIENT, id_salt="s", budget=Budget.for_question(SETTINGS)
+    )
+    sql = "SELECT DISTINCT p.brand FROM products p"
+    [result] = json.loads(run_sql([sql], ctx))
+    assert {row["brand"] for row in result["rows"]} == set(DENIM.brands or ())

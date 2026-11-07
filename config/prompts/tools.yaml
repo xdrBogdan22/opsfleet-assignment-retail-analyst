@@ -1,0 +1,25 @@
+# What the model reads about each tool. Edit the wording here; the argument
+# schema lives next to the tool's code in src/retail_analyst/tools/.
+
+run_sql: >-
+  Run one or more read-only GoogleSQL queries on the retail data and get the
+  rows back. Send several queries at once when you need several facts. Results
+  are capped in rows; aggregate in SQL instead of fetching raw rows.
+
+describe_schema: >-
+  List the tables and columns you can query, with a short description of each.
+  Use it to answer questions about what data is available.
+
+ask_clarification: >-
+  Ask the user one short question with two to four answer options, when the
+  request has several reasonable meanings that would change the result.
+
+save_report: >-
+  Save a report the user asked for. Write it from query results in this
+  conversation, with a title, a one-paragraph summary, sections and action
+  items.
+
+request_delete: >-
+  Start deleting the user's saved reports. Give either a text the reports must
+  mention, or set this_conversation to true for reports made in this
+  conversation. The user confirms the exact list before anything is deleted.

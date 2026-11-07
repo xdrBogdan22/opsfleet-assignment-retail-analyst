@@ -13,6 +13,8 @@ so a typo stops the app with a clear error instead of a silent default.
 | `data/` | `schema.yaml` | Columns of the four tables, with descriptions |
 | `data/` | `safety.yaml` | Blocked columns, hashed IDs, demographic rules |
 | `seed/` | `demo.yaml` | Demo users, their brands and the first persona |
+| `prompts/` | `agent.yaml` | System prompt template and the final-answer instruction |
+| `prompts/` | `tools.yaml` | What the model reads about each tool |
 
 To change one value without editing a file, set an environment variable named
 `RETAIL_ANALYST__<SECTION>__<KEY>`, for example:

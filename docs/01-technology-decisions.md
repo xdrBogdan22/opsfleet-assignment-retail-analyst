@@ -5,15 +5,15 @@ Evidence was collected on 2026-11-07.
 
 ## Decision 1: agent framework
 
-**Status:** proposed. It needs the personal experience scores and a one-hour
-test of the delete flow with Gemini.
+**Status:** chosen.
+
+**Choice:** LangGraph.
 
 **Result:** LangGraph 4.20, Agno 4.15. That gap is too small to decide on
-scores alone. LangGraph is stronger on explicit control and durability. Agno
-needs less orchestration code and has the highest personal experience score.
-
-**Proposed choice:** Agno, if the test in [Validation](#validation) passes.
-Otherwise LangGraph.
+scores alone, so the decision rests on the two heaviest criteria. LangGraph is
+stronger on safety control and human confirmation, and those are the areas where
+a mistake could expose personal data or delete the wrong report. Agno needs less
+orchestration code and has the highest personal experience score.
 
 ### What the framework must do
 
@@ -119,7 +119,7 @@ and durable execution [A7]. That page is vendor material, and I have not tested
 it.
 
 Main risk: the docs do not show how a paused run behaves across a process
-restart, so I must test that.
+restart.
 
 #### LangGraph
 
@@ -187,30 +187,27 @@ Gemini has a native integration [C3]. I found no native fallback setting, only
 a gateway example through Portkey [C4]. Tracing goes to the CrewAI platform by
 default, with OpenLIT as an OpenTelemetry option [C5].
 
-### Validation
+### Consequences for the build
 
-Spend one hour on this test before committing to Agno:
+LangGraph restarts a node after an interrupt, so the design follows these rules:
 
-1. Connect one Gemini model and one fallback model.
-2. Add a report delete tool that needs confirmation.
-3. Show a preview, stop the process, restart it and confirm.
-4. Check that the delete runs once and only on the previewed reports.
-5. Check that a stale or repeated confirmation deletes nothing.
-6. Inspect the saved traces.
+1. The delete node does nothing before `interrupt()` except read the preview.
+2. The confirmation is bound to the exact previewed report IDs and works once.
+3. A repeated or stale confirmation deletes nothing.
+4. The prototype uses a persistent checkpointer, so a pending delete survives a
+   restart.
+5. A dedicated node masks query results before the model reads them.
 
-If steps 3 to 5 need workarounds outside a small application-owned confirmation
-store, use LangGraph.
+### Justification
 
-### Draft justification
-
-> I chose Agno because the main risk in this agent sits in deterministic code,
-> not in complex orchestration. SQL validation, brand scoping, PII masking and
-> report ownership run in application code whatever the model does. The model
-> loop is simple, so a graph would add code without adding safety. Agno provides
-> tool confirmation with pause and resume, fallback models, hooks and local
-> tracing. LangGraph would be my choice for long-running branched workflows or
-> checkpoint-level recovery. Keeping safety outside the framework keeps that
-> migration possible. My experience with Agno: to be completed.
+> I chose LangGraph because the highest risks in this agent are exposing personal
+> data and deleting the wrong reports. An explicit graph gives each safety step
+> its own node, so PII masking sits between SQL execution and the model and can
+> be tested alone. `interrupt()` with a checkpointer stops a delete, waits for a
+> person and resumes from saved state. The graph costs more code than a lighter
+> framework. I accept that cost, and I keep SQL validation, brand scoping and
+> report ownership in plain application code. My experience with LangGraph: to
+> be completed.
 
 ### References
 

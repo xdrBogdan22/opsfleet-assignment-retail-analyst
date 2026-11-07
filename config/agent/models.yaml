@@ -1,0 +1,33 @@
+# Models are tried in order. Only enabled entries are used. The client asked
+# for fallback between Gemini models only, with other providers present but
+# switched off (docs/03-design-proposals.md, P17).
+
+models:
+  # Primary. Matches or beats far more expensive models on analyst-style
+  # benchmarks (Vals Finance Agent v2: 61.4%, Opus 5: 58.6%) at $0.75 input and
+  # $3.75 output per 1M tokens until 2026-12-31.
+  - provider: google_genai
+    name: gemini-3.8-flash
+    enabled: true
+
+  # Fallback. Rate limits apply per model, so a 429 on the primary can still
+  # succeed here. Cheaper at $0.30 and $2.50 per 1M tokens.
+  - provider: google_genai
+    name: gemini-3.5-flash-lite
+    enabled: true
+
+  # Survives a full Gemini outage, but needs a second key and contract, sends
+  # data to another company and needs its own eval. Off at the client's request.
+  - provider: anthropic
+    name: claude-sonnet-5-5
+    enabled: false
+
+# Google strongly recommends the default of 1.0 for Gemini 3 models and warns
+# that lower values can cause looping or worse reasoning
+# (https://ai.google.dev/gemini-api/docs/gemini-3). Numbers stay correct
+# because they come from BigQuery, not from the model.
+temperature: 1.0
+
+# The Gemini SDK already retries transient errors up to 4 times, so the agent
+# adds no retry of its own and moves to the next model instead (P10).
+sdk_retries: 4

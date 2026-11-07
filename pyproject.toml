@@ -8,11 +8,16 @@ dependencies = [
     "db-dtypes>=1.9.0",
     "google-cloud-bigquery>=3.47.0",
     "google-genai>=3.0.0",
+    "jinja2>=3.1.6",
     "langchain-google-genai>=4.4.3",
     "langgraph>=1.2.20",
-    "langgraph-checkpoint-sqlite>=3.1.3",
+    "langgraph-checkpoint-postgres>=3.2.0",
     "pandas>=3.1.1",
+    "psycopg[binary,pool]>=3.3.8",
+    "pydantic>=2.14.3",
     "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+    "sqlglot>=30.30.0",
 ]
 
 [build-system]
@@ -21,6 +26,36 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "mypy>=2.4.1",
     "pytest>=9.2.0",
     "ruff>=0.17.4",
+    "types-pyyaml>=6.0.12.20261103",
 ]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 110
+src = ["src", "scripts", "tests"]
+# The client's starter code stays exactly as received.
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, bugbear, pyupgrade, simplify, naming, comprehensions,
+# pytest style, returns, pathlib and ruff's own rules.
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "C4", "PT", "RET", "PTH", "RUF"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["google.cloud.*", "sqlglot.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: calls real Google Cloud services"]

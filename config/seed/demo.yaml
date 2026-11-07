@@ -1,0 +1,29 @@
+# Demo data loaded by scripts/init_db.py. Brands were chosen from the top
+# sellers by revenue in thelook_ecommerce (checked on 2026-11-07), so every
+# manager has enough data to analyze.
+
+users:
+  # Sees every brand, but keeps every privacy rule.
+  - id: ceo
+    name: Dana (CEO)
+    all_brands: true
+
+  # Denim brands. "Joe's Jeans" also tests quoting in the SQL scope filter.
+  - id: denim_manager
+    name: Alex (Denim)
+    brands: [Diesel, True Religion, 7 For All Mankind, "Joe's Jeans"]
+
+  # Outdoor brands, with no overlap with denim, to show the scopes are separate.
+  - id: outdoor_manager
+    name: Sam (Outdoor)
+    brands: [Carhartt, Columbia, Oakley, Volcom]
+
+# First persona version. The CEO's team changes the tone by adding a new
+# version; safety rules are not part of the persona.
+persona:
+  name: default
+  instructions: >-
+    Write for busy executives. Lead with the answer in one sentence, then the
+    numbers that support it. Use plain business language, no SQL or jargon.
+    State the metric definitions you used. End reports with concrete action
+    items.

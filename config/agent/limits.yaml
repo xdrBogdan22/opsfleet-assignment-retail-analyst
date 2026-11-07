@@ -1,0 +1,30 @@
+# Budget for one user question. The agent stops and explains what it found when
+# any limit is reached. Override one value with an environment variable, for
+# example RETAIL_ANALYST__LIMITS__MODEL_CALLS=4.
+
+# Client guidance: roughly 2 to 5 model calls per question, to stay within
+# Gemini free-tier rate limits. A typical question uses 3: understand and
+# query, one repair or follow-up, write the answer.
+model_calls: 5
+
+# SQL repairs share the model-call budget, so they are counted for the whole
+# question, not for each query. Two repairs leave room for the final answer.
+sql_repairs: 2
+
+# One model call can request several queries at once (parallel function
+# calls), so a report needs more queries than model calls.
+queries: 5
+
+# One probe query to check filter values after an empty result, as in SDE-SQL
+# (docs/03-design-proposals.md, P9). More probes cost calls without much gain.
+empty_probes: 1
+
+# Client targets: simple questions in 10 to 30 seconds, long reports in 1 to 2
+# minutes. These are hard stops, set at the top of each range.
+question_seconds: 30
+report_seconds: 120
+
+# Client budget of about $1 per question. Expected cost is near $0.08, so this
+# only stops runaway loops. Design only: the prototype logs cost but does not
+# enforce this value.
+cost_usd: 1.0

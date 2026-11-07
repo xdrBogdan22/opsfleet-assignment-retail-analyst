@@ -1,0 +1,22 @@
+# How the agent reaches BigQuery. The project comes from GOOGLE_CLOUD_PROJECT.
+
+dataset: bigquery-public-data.thelook_ecommerce
+
+# The only tables the brief names. Any other table is rejected.
+tables: [orders, order_items, products, users]
+
+# The four tables together hold about 45 MB, so 1 GB covers any honest query
+# with room for growth, and stops a cross join that explodes. At on-demand
+# prices 1 GB is well under the $1 budget per question.
+max_bytes_billed: 1000000000
+
+# Fits inside the 30-second question limit, with time left for the answer.
+query_timeout_seconds: 20
+
+# Enough rows for any chart or table an executive reads. Larger results are
+# cut, and the agent is told so, which keeps tokens and cost down.
+max_rows: 200
+
+# The public dataset holds order rows dated in the future, up to a few days
+# ahead (checked on 2026-11-07). Hiding them keeps "this month" honest.
+exclude_future_rows: true

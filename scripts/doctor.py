@@ -13,9 +13,7 @@ REQUIRED_TABLES = ("orders", "order_items", "products", "users")
 
 def check_bigquery(project: str) -> str:
     client = bigquery.Client(project=project)
-    tables = " UNION ALL ".join(
-        f"SELECT COUNT(*) AS n FROM `{DATASET}.{name}`" for name in REQUIRED_TABLES
-    )
+    tables = " UNION ALL ".join(f"SELECT COUNT(*) AS n FROM `{DATASET}.{name}`" for name in REQUIRED_TABLES)
     job = client.query(
         tables,
         job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False),

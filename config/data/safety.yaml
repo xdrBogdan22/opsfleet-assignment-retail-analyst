@@ -1,0 +1,29 @@
+# Data rules enforced in code by the SQL safety layer. The model cannot change
+# them, and the persona cannot override them.
+
+# Columns removed from the agent's view of each table. Personal data from the
+# users table, plus orders.num_of_item, which counts items from every brand and
+# would leak other brands' volume to a brand manager.
+blocked_columns:
+  users: [first_name, last_name, email, street_address, postal_code, latitude, longitude, user_geom]
+  orders: [num_of_item]
+
+# Customer IDs leave BigQuery only as salted SHA-256 hashes, so rankings can
+# name a customer without exposing the real ID. The salt comes from
+# ID_HASH_SALT in .env.
+hashed_id_columns:
+  users: [id]
+  orders: [user_id]
+  order_items: [user_id]
+
+# Allowed only inside aggregates when a customer ID is also selected, so a row
+# cannot describe one identifiable customer. orders.gender is covered too.
+demographic_columns: [age, gender, city, state, country]
+
+# Smallest customer group a demographic breakdown may show. A working default
+# until the client answers; design only in the prototype.
+min_group_size: 10
+
+# Longest message accepted, in characters. Executive questions are short;
+# a very long message is more likely an injection attempt or pasted data.
+max_input_chars: 2000

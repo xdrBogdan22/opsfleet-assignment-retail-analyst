@@ -34,11 +34,51 @@ gcloud auth application-default set-quota-project YOUR_PROJECT_ID
 uv run --frozen python scripts/doctor.py
 ```
 
+### Postgres
+
+The app stores reports, confirmations and conversation state in Postgres with
+the pgvector extension. Docker is not needed.
+
+```bash
+# macOS
+brew install postgresql@18 pgvector
+brew services start postgresql@18
+
+# Debian or Ubuntu, after adding the PGDG apt repository
+sudo apt install postgresql-18 postgresql-18-pgvector
+```
+
+Create the database, point `DATABASE_URL` in `.env` at it, then create the
+tables and demo data:
+
+```bash
+createdb retail_analyst
+uv run --frozen python scripts/init_db.py
+```
+
+### Tests
+
+```bash
+uv run --frozen pytest
+```
+
+## Repository layout
+
+| Folder | Contents |
+|---|---|
+| [`config/`](config/README.md) | Every limit, model and data rule, with the reason for each default |
+| [`db/`](db/README.md) | Postgres schema |
+| [`scripts/`](scripts/README.md) | Setup and connection checks |
+| [`src/retail_analyst/`](src/retail_analyst/README.md) | Application code |
+| [`tests/`](tests/README.md) | Unit and integration tests |
+| `docs/` | Design documents, listed below |
+
 ## Contents
 
 - [Technology decisions](docs/01-technology-decisions.md)
 - [Architecture](docs/02-architecture.md)
 - [Design proposals](docs/03-design-proposals.md)
-- [Open client questions](docs/client-requirements/open-questions.md)
+- [Progress log](docs/progress.md)
+- [Client questions](docs/client-requirements/open-questions.md)
 - [Client requirements](docs/client-requirements/initial-requirements.md)
 - [BigQuery starter code](docs/client-requirements/big_query.py)

@@ -1,0 +1,67 @@
+# Columns of the four tables, read from BigQuery metadata on 2026-11-07. The
+# dataset ships no column descriptions, so the descriptions below are ours.
+# The SQL safety layer builds each table's view from this list, minus the
+# blocked columns in safety.yaml. The agent's schema card is built from the
+# same list, so the model never sees a blocked column.
+
+tables:
+  orders:
+    description: One row per customer order.
+    columns:
+      order_id: {type: INTEGER, description: Order identifier}
+      user_id: {type: INTEGER, description: Customer who placed the order}
+      status: {type: STRING, description: "Complete, Shipped, Processing, Cancelled or Returned"}
+      gender: {type: STRING, description: "Customer gender, M or F"}
+      created_at: {type: TIMESTAMP, description: When the order was placed}
+      returned_at: {type: TIMESTAMP, description: "When the order was returned, if it was"}
+      shipped_at: {type: TIMESTAMP, description: When the order shipped}
+      delivered_at: {type: TIMESTAMP, description: When the order was delivered}
+      num_of_item: {type: INTEGER, description: Items in the order across all brands}
+
+  order_items:
+    description: One row per item sold. The main table for revenue.
+    columns:
+      id: {type: INTEGER, description: Order item identifier}
+      order_id: {type: INTEGER, description: Order this item belongs to}
+      user_id: {type: INTEGER, description: Customer who bought the item}
+      product_id: {type: INTEGER, description: Product sold}
+      inventory_item_id: {type: INTEGER, description: Physical inventory unit}
+      status: {type: STRING, description: "Complete, Shipped, Processing, Cancelled or Returned"}
+      created_at: {type: TIMESTAMP, description: When the item was ordered}
+      shipped_at: {type: TIMESTAMP, description: When the item shipped}
+      delivered_at: {type: TIMESTAMP, description: When the item was delivered}
+      returned_at: {type: TIMESTAMP, description: "When the item was returned, if it was"}
+      sale_price: {type: FLOAT, description: Price paid in USD}
+
+  products:
+    description: Product catalog.
+    columns:
+      id: {type: INTEGER, description: Product identifier}
+      cost: {type: FLOAT, description: Cost to the company in USD}
+      category: {type: STRING, description: "Product category, for example Jeans or Outerwear & Coats"}
+      name: {type: STRING, description: Product name}
+      brand: {type: STRING, description: Brand name}
+      retail_price: {type: FLOAT, description: List price in USD}
+      department: {type: STRING, description: Men or Women}
+      sku: {type: STRING, description: Stock keeping unit}
+      distribution_center_id: {type: INTEGER, description: Distribution center that stocks it}
+
+  users:
+    description: Customers.
+    columns:
+      id: {type: INTEGER, description: Customer identifier}
+      first_name: {type: STRING, description: First name}
+      last_name: {type: STRING, description: Last name}
+      email: {type: STRING, description: Email address}
+      age: {type: INTEGER, description: Age in years}
+      gender: {type: STRING, description: M or F}
+      state: {type: STRING, description: State or region}
+      street_address: {type: STRING, description: Street address}
+      postal_code: {type: STRING, description: Postal code}
+      city: {type: STRING, description: City}
+      country: {type: STRING, description: Country}
+      latitude: {type: FLOAT, description: Home latitude}
+      longitude: {type: FLOAT, description: Home longitude}
+      traffic_source: {type: STRING, description: "How the customer found the store, for example Search or Email"}
+      created_at: {type: TIMESTAMP, description: When the customer signed up}
+      user_geom: {type: GEOGRAPHY, description: Home location}

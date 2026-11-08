@@ -90,5 +90,9 @@ what comes next. Updated after every step.
 
 ## Not tested yet
 
+Open problems from live runs, with options to fix them, are in
+[Known limitations](known-limitations.md).
+
+
 - Sentry email alert rule: the issue arrived; alert delivery depends on the project's alert settings
 - Debian or Ubuntu install steps, written from the pgvector docs but not run

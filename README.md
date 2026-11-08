@@ -118,6 +118,7 @@ the metrics and for running it on a free-tier key.
 - [Example run](docs/example-run.md)
 - [Evaluation](eval/README.md)
 - [Progress log](docs/progress.md)
+- [Known limitations](docs/known-limitations.md)
 - [Client questions](docs/client-requirements/open-questions.md)
 - [Client requirements](docs/client-requirements/initial-requirements.md)
 - [BigQuery starter code](docs/client-requirements/big_query.py)

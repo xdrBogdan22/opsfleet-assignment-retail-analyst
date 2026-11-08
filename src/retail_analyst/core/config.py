@@ -53,6 +53,7 @@ class ModelEntry(Strict):
 class Models(Strict):
     models: list[ModelEntry]
     temperature: float = Field(ge=0, le=2)
+    thinking_level: str
     attempts_per_model: int = Field(ge=1)
     call_timeout_seconds: int = Field(gt=0)
     breaker_failures: int = Field(ge=1)

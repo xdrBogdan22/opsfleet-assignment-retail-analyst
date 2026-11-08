@@ -11,9 +11,10 @@ embedding_model: gemini-embedding-001
 # Gemini's OpenAI-compatible endpoint, which Ragas 0.4 can use directly.
 judge_base_url: https://generativelanguage.googleapis.com/v1beta/openai/
 
-# Room for the judge's structured output. Ragas' default was too small for
-# Faithfulness on long answers (IncompleteOutputException on 3 of 14 cases).
-judge_max_tokens: 8192
+# Room for the judge's output. Gemini 3 counts its thinking tokens in this
+# limit, so long answers ran out at Ragas' default and again at 8192
+# (IncompleteOutputException on 2 of 14 cases). The models allow 64K.
+judge_max_tokens: 32768
 
 # Response Relevancy generates this many questions from each answer. Ragas
 # defaults to 3; 1 keeps a full run within free-tier limits at a small cost in

@@ -41,6 +41,12 @@ work, Google reports 61.4% for 3.8 Flash on Vals Finance Agent v2 against
 of 37, at about a sixth of Opus's price. It is much weaker on long, open agent
 tasks, but this agent's loop is short and bounded.
 
+Latency set one more choice. With its default reasoning, `gemini-3.8-flash`
+took 8.7 seconds and 951 reasoning tokens for one SQL-writing call, and full
+questions took about a minute, against the client's 10 to 30 seconds. With
+`thinking_level: low` the same call took 2.2 seconds. The eval measures what
+that costs in quality.
+
 What development showed: on a free-tier key, `gemini-3.8-flash` allows 20
 requests a day per project, and it also returned 503 and 504 under load. The
 fallback answered every time. On the client's free key the fallback model will
@@ -83,7 +89,8 @@ One question, in order. Steps 3, 5 and 7 are model calls; the client asked for
 7. When one model call is left or time is up, the agent calls Gemini without
    tools, so the last call always answers.
 8. `output_guard` runs Presidio on the answer. Text that came from query
-   results, such as brand names, is allowed.
+   results, such as brand names, is allowed. If a report was saved, it adds
+   the `/open` command when the model forgot it.
 9. The CLI prints the answer. Langfuse gets the trace and the turn's metrics;
    the local log gets one JSON line.
 
@@ -200,8 +207,10 @@ Partly implemented (P11, P12, P13).
 - Before deployment: `eval/run_eval.py` runs 14 cases and applies a gate of
   0.8 on Faithfulness, Response Relevancy and Agent Goal Accuracy, and 100% on
   safety. The metrics are explained in plain words in
-  [eval/README](../eval/README.md). Results of the full run are in
-  [Progress](progress.md).
+  [eval/README](../eval/README.md). The latest run: Goal Accuracy 1.00,
+  Relevancy 0.88, safety 4 of 4, Faithfulness 0.77. Faithfulness fails the
+  gate because answers about the database suggest analyses the schema does not
+  state; the eval README explains it.
 - Report intent: Agent Goal Accuracy checks that the user got the outcome they
   asked for. When a request has several readings that change the numbers, the
   agent asks one short question with options before answering.

@@ -92,19 +92,24 @@ def _run_case(case: dict[str, Any], pool: Pool, config: dict[str, Any]) -> dict[
         {"configurable": {"thread_id": conversation}},
         context=session,
     )
+    agent_seconds = round(time.monotonic() - started, 1)
     messages = state["messages"]
     answer = str(messages[-1].text)
+    tools_used = [call["name"] for m in messages if isinstance(m, AIMessage) for call in m.tool_calls]
     contexts = [str(m.text) for m in messages if isinstance(m, ToolMessage)]
 
     banned = [text for text in case.get("must_not_contain", []) if text.lower() in answer.lower()]
+    missing = [text for text in case.get("must_contain", []) if text.lower() not in answer.lower()]
     scores = asyncio.run(_judge(case, answer, contexts, messages, config))
     result = {
         "id": case["id"],
         "flow": case["flow"],
         "answer": answer,
-        "seconds": round(time.monotonic() - started, 1),
+        "agent_seconds": agent_seconds,
         "model_calls": state.get("model_calls", 0),
+        "tools_used": tools_used,
         "banned_text_found": banned,
+        "required_text_missing": missing,
         **scores,
     }
     if case["flow"] == "safety":
@@ -174,6 +179,10 @@ def _report(results: list[dict[str, Any]], config: dict[str, Any]) -> bool:
         ok = rate >= config["gate_safety_pass_rate"]
         passed &= ok
         print(f"  safety pass rate: {rate:.0%} over {len(safety)} cases {'PASS' if ok else 'FAIL'}")
+    text_failures = [r["id"] for r in results if r.get("banned_text_found") or r.get("required_text_missing")]
+    if text_failures:
+        passed = False
+        print(f"  text checks failed: {', '.join(text_failures)}")
     errors = [r["id"] for r in results if "error" in r]
     if errors:
         passed = False

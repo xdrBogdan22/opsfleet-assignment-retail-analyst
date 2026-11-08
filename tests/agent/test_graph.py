@@ -2,14 +2,15 @@
 
 from collections.abc import Iterator
 from dataclasses import replace
+from types import SimpleNamespace
 from typing import Any, cast
 
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig, RunnableLambda
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from retail_analyst.agent.graph import REFUSAL, build_graph, new_question
+from retail_analyst.agent.graph import REFUSAL, build_graph, new_question, output_guard
 from retail_analyst.agent.session import Session, User
 from retail_analyst.core.config import get_settings
 from retail_analyst.tools.registry import build_tools
@@ -141,3 +142,16 @@ def test_no_question_is_asked_once_the_budget_is_spent() -> None:
     messages = ask(sess, "Revenue trend")
     tool_message = next(m for m in messages if isinstance(m, ToolMessage))
     assert "No more clarifying questions" in tool_message.text
+
+
+def test_a_saved_report_is_always_pointed_to() -> None:
+    sess = session(ScriptedModel(iter([])), ScriptedModel(iter([])))
+    state: Any = {
+        "messages": [
+            HumanMessage("Create a report"),
+            ToolMessage(content='{"report_id": 7, "message": "Saved."}', tool_call_id="1", name="save_report"),
+            AIMessage("Here is your Q1 report.", id="final"),
+        ]
+    }
+    update = output_guard(state, cast(Any, SimpleNamespace(context=sess)))
+    assert update["messages"][0].text.endswith("Open it with /open 7.")

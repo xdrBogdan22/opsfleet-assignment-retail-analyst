@@ -61,6 +61,7 @@ def build_chat_model(
         model = ChatGoogleGenerativeAI(
             model=entry.name,
             temperature=settings.temperature,
+            thinking_level=settings.thinking_level,
             max_retries=settings.attempts_per_model,
             timeout=settings.call_timeout_seconds,
         ).bind_tools(tools)

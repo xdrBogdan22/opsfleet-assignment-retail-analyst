@@ -107,14 +107,32 @@ def after_agent(state: AgentState) -> Literal["tools", "output_guard"]:
 
 
 def output_guard(state: AgentState, runtime: Runtime[Session]) -> dict[str, list[AnyMessage]]:
-    """Removes personal data from the final answer. The message keeps its id, so it is replaced."""
+    """The final step: removes personal data and makes sure a saved report can be found.
+
+    The message keeps its id, so the new text replaces the old one.
+    """
     session = runtime.context
     last = state["messages"][-1]
     result = redact(str(last.text), session.settings.safety, _known_values(state) | {session.user.name})
-    if not result.removed:
-        return {"messages": []}
-    log.warning("output guard removed %s", ", ".join(result.removed))
-    return {"messages": [AIMessage(content=result.text, id=last.id)]}
+    text = result.text
+    if result.removed:
+        log.warning("output guard removed %s", ", ".join(result.removed))
+    for report_id in _reports_saved_this_question(state):
+        if f"/open {report_id}" not in text:
+            text += f"\n\nSaved as report {report_id}. Open it with /open {report_id}."
+    return {"messages": [AIMessage(content=text, id=last.id)] if text != str(last.text) else []}
+
+
+def _reports_saved_this_question(state: AgentState) -> list[int]:
+    saved = []
+    for message in reversed(state["messages"]):
+        if isinstance(message, HumanMessage):
+            break
+        if isinstance(message, ToolMessage) and message.name == "save_report":
+            report_id = json.loads(str(message.text)).get("report_id")
+            if report_id is not None:
+                saved.append(int(report_id))
+    return sorted(saved)
 
 
 def _known_values(state: AgentState) -> set[str]:

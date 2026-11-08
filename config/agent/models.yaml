@@ -29,6 +29,12 @@ models:
 # because they come from BigQuery, not from the model.
 temperature: 1.0
 
+# How much the model reasons before answering. Measured on 2026-11-08 with one
+# SQL-writing prompt: the default took 8.7 s and 951 reasoning tokens, "low"
+# took 2.2 s. The client wants 10 to 30 seconds for a question that needs 2 to
+# 5 calls, which the default cannot meet. The eval checks the quality cost.
+thinking_level: low
+
 # Attempts per model, including the first, done by the Gemini SDK with
 # exponential backoff. LangChain's default is 6, which can spend the whole
 # 30-second budget waiting on one model. Two attempts absorb a brief blip; after

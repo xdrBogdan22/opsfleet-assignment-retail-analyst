@@ -4,8 +4,8 @@
 # end state in a sentence and then compares it with the reference, so format
 # details (sort order, wording of definitions) do not belong here; a first run
 # on 2026-11-08 scored a correct answer 0 because the reference listed them.
-# "must_not_contain" is a deterministic check on the final answer
-# (case-insensitive) and covers the format and privacy details instead.
+# "must_contain" and "must_not_contain" are deterministic checks on the final
+# answer (case-insensitive) and cover the format and privacy details instead.
 
 cases:
   # Customer behavior
@@ -73,7 +73,8 @@ cases:
     flow: multi_step
     user: denim_manager
     question: Create a report for Q1 2026 with insights and action items for Q2.
-    reference: A Q1 2026 report with insights and Q2 action items is saved and the user is told how to open it.
+    reference: A Q1 2026 report with insights and Q2 action items is saved.
+    must_contain: ["/open"]
 
   # Safety
   - id: pii-request

@@ -28,9 +28,11 @@ what comes next. Updated after every step.
 | 19 | Clarification (P12): `ask_clarification` pauses with a question and 2 to 4 options, the answer goes back as the tool result, at most 2 per question | 2 graph tests: pause and resume, budget spent. Live: a vague question got an answer with a stated assumption instead of a question, as the prompt asks when one reading is reasonable. | `5272b1b` |
 | 20 | Architecture doc matches the built graph, tools, resilience table and config files; unused `empty_probes` setting removed | Doc review against the code | `c9b64c0` |
 | 21 | Persona read on every turn; `scripts/set_persona.py` publishes a version and lists history | Ran it: v2 became active, v1 kept, then v1 restored for the demo | `c9b64c0` |
-| 22 | Customer codes shortened to 16 hex characters (64 bits) | Guard and BigQuery tests updated | next commit |
-| 23 | Evaluation: 14 cases, Ragas Faithfulness, Response Relevancy and Agent Goal Accuracy with Gemini as judge, banned-text checks, release gate | Partial and full runs, see below | next commit |
-| 24 | Technical explanation, requirements traceability, example run | Every figure in the example run matches BigQuery | next commit |
+| 22 | Customer codes shortened to 16 hex characters (64 bits) | Guard and BigQuery tests updated | `71f59e4` |
+| 23 | Evaluation: 14 cases, Ragas Faithfulness, Response Relevancy and Agent Goal Accuracy with Gemini as judge, banned-text checks, release gate | Partial and full runs, see below | `71f59e4` |
+| 24 | Technical explanation, requirements traceability, example run | Every figure in the example run matches BigQuery | `71f59e4` |
+| 26 | Eval results recorded: Faithfulness 0.77 (gate 0.8, fails on schema questions), Relevancy 0.88, Goal Accuracy 1.00, safety 4 of 4, answers in 6 to 30 seconds | Full run plus one rerun | this commit |
+| 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | this commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -66,12 +68,21 @@ what comes next. Updated after every step.
 | With `gemini-3.5-flash-lite` as judge, a correct refusal and a correct challenge to a false premise scored 0 | Judge set to `gemini-3.8-flash`, overridable with `EVAL_JUDGE_MODEL` |
 | Free-tier quota: `gemini-3.8-flash` allows 20 requests a day per project (Google's 429 says `quotaValue: 20`) | Development moved to the owner's second Gemini key; the free key is kept as `GOOGLE_API_KEY_FREE_TIER` for a final check under reviewer conditions |
 | One failed case stopped the whole eval run | Failures are recorded per case and fail the gate |
+| Full eval with the development key: plain questions took about 60 seconds, twice the client's limit | `thinking_level: low`; one call fell from 8.7 to 2.2 seconds |
+| `q1-report` saved the report, but the answer did not say how to open it, so the goal judge scored 0 | The final step adds the `/open` command in code |
+| After that, the judge still scored `q1-report` 0: its one-sentence end state drops how to open the report | The `/open` requirement moved to a deterministic `must_contain` check; the reference states the goal only |
+| Judge output still cut off at 8192 tokens on 2 cases, because Gemini 3 counts thinking tokens in the limit | `judge_max_tokens: 32768` |
 | Clean install without keys: the BigQuery test module built its client at import and crashed collection; a model unit test needed a key | Client created on first use; the unit test sets a fake key. Clean copy: 63 passed, 13 skipped. |
 
 ## Next
 
-1. Turn on Langfuse and Sentry with real keys and check a trace and an alert
-2. Docs: technical explanation, requirement traceability, setup, example run
+1. Owner decision: should Faithfulness apply to database-structure questions, or should those cases use only Goal Accuracy and text checks?
+2. Turn on Langfuse and Sentry with real keys and check a trace and an alert
+3. Owner: fill in "My experience with LangGraph" in `docs/01-technology-decisions.md`
+4. Owner: decide whether to keep `docs/drafts/design-brief-prompt.md`
+5. Could, if time allows: Golden Knowledge retrieval, LangMem preferences
+6. Final check on the free-tier key (`GOOGLE_API_KEY_FREE_TIER`) under reviewer conditions
+7. Check the Mermaid diagrams render on GitHub
 
 ## Not tested yet
 

@@ -69,12 +69,18 @@ Acme", and confirm the listed reports with `yes`; any other answer cancels. Type
 ### Monitoring (optional)
 
 Without keys the app writes one JSON line per turn to `retail_analyst.log`.
-To see full traces and get error alerts, create free accounts and add the keys
-to `.env`:
 
-- [Langfuse Cloud](https://cloud.langfuse.com): `LANGFUSE_PUBLIC_KEY`,
-  `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`
-- [Sentry](https://sentry.io): `SENTRY_DSN`
+For full traces, run Langfuse locally with Docker. One command writes its
+secrets, starts it and adds the keys to `.env`:
+
+```bash
+infra/langfuse/setup.sh     # then open http://localhost:3000
+```
+
+[Langfuse Cloud](https://cloud.langfuse.com) works too: put its
+`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_HOST` in `.env`.
+For error alerts, create a Python project on [Sentry](https://sentry.io) and
+put its `SENTRY_DSN` in `.env`.
 
 The CLI prints which services are on when it starts. `/good` and `/bad` attach
 a rating to the last answer's trace.
@@ -99,6 +105,7 @@ the metrics and for running it on a free-tier key.
 | [`src/retail_analyst/`](src/retail_analyst/README.md) | Application code |
 | [`tests/`](tests/README.md) | Unit and integration tests |
 | [`eval/`](eval/README.md) | Evaluation dataset, runner and release gate |
+| [`infra/`](infra/langfuse/README.md) | Local Langfuse with Docker |
 | `docs/` | Design documents, listed below |
 
 ## Contents

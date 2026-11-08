@@ -32,6 +32,7 @@ what comes next. Updated after every step.
 | 23 | Evaluation: 14 cases, Ragas Faithfulness, Response Relevancy and Agent Goal Accuracy with Gemini as judge, banned-text checks, release gate | Partial and full runs, see below | `71f59e4` |
 | 24 | Technical explanation, requirements traceability, example run | Every figure in the example run matches BigQuery | `71f59e4` |
 | 26 | Eval results recorded: Faithfulness 0.77 (gate 0.8, fails on schema questions), Relevancy 0.88, Goal Accuracy 1.00, safety 4 of 4, answers in 6 to 30 seconds | Full run plus one rerun | `ce856b0` |
+| 27 | Local Langfuse (`infra/langfuse/`, upstream compose v4.76.0); Mermaid fix: `graph` is a reserved word and broke the production diagram on GitHub | Live question: trace with 25 observations, 3 model calls, 2 tool calls, user and session; all 6 scores in ClickHouse; 5 diagrams render with mermaid-cli 11.4.2 | pending |
 | 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | `ce856b0` |
 
 ### Live run on 2026-11-08 (denim manager)
@@ -73,19 +74,19 @@ what comes next. Updated after every step.
 | After that, the judge still scored `q1-report` 0: its one-sentence end state drops how to open the report | The `/open` requirement moved to a deterministic `must_contain` check; the reference states the goal only |
 | Judge output still cut off at 8192 tokens on 2 cases, because Gemini 3 counts thinking tokens in the limit | `judge_max_tokens: 32768` |
 | Clean install without keys: the BigQuery test module built its client at import and crashed collection; a model unit test needed a key | Client created on first use; the unit test sets a fake key. Clean copy: 63 passed, 13 skipped. |
+| Ports 5432 and 6379 were already taken on the host, so the upstream Langfuse compose file failed to start | The vendored copy publishes no host port for its Postgres and Redis; Langfuse reaches them on the Compose network |
+| Langfuse v4 no longer serves `GET /api/public/traces` or score reads; it answers that it runs in events-only mode | Traces checked with `/api/public/v2/observations`, scores in ClickHouse |
+| GitHub could not render the production diagram: a node named `graph`, a Mermaid keyword | Node renamed to `agent`; every diagram now rendered locally with mermaid-cli |
 
 ## Next
 
 1. Owner decision: should Faithfulness apply to database-structure questions, or should those cases use only Goal Accuracy and text checks?
-2. Turn on Langfuse and Sentry with real keys and check a trace and an alert
+2. Sentry: the owner creates the project and puts `SENTRY_DSN` in `.env`; then check an alert
 3. Owner: fill in "My experience with LangGraph" in `docs/01-technology-decisions.md`
-4. Owner: decide whether to keep `docs/drafts/design-brief-prompt.md`
-5. Could, if time allows: Golden Knowledge retrieval, LangMem preferences
-6. Final check on the free-tier key (`GOOGLE_API_KEY_FREE_TIER`) under reviewer conditions
-7. Check the Mermaid diagrams render on GitHub
+4. Could, if time allows: Golden Knowledge retrieval, LangMem preferences
+5. Final check on the free-tier key (`GOOGLE_API_KEY_FREE_TIER`) under reviewer conditions
 
 ## Not tested yet
 
-- Langfuse and Sentry with real keys: the code paths run only when keys exist. Accounts: cloud.langfuse.com and sentry.io.
+- Sentry with a real DSN: the code path runs only when `SENTRY_DSN` is set
 - Debian or Ubuntu install steps, written from the pgvector docs but not run
-- Mermaid diagrams in `docs/02-architecture.md`, not rendered locally

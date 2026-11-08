@@ -224,7 +224,9 @@ Implemented (P14). With keys in `.env`, each turn becomes a Langfuse trace
 grouped by conversation and user, holding every model call, tool call, SQL
 query and result. The turn's outcome, model calls, queries, SQL repairs and
 seconds are attached as scores, and `/good` or `/bad` adds a user rating. To
-debug a bad answer, open its trace and read the messages in order. Sentry
+debug a bad answer, open its trace and read the messages in order. For the
+prototype, `infra/langfuse/setup.sh` runs Langfuse locally with Docker; a live
+question produced a trace of 25 steps with all six scores. Sentry
 records errors without prompts and alerts by email. Without keys, the same
 turn summary goes to `retail_analyst.log` as one JSON line.
 

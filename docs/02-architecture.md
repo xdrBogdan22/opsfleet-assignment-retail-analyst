@@ -47,9 +47,9 @@ flowchart TB
     subgraph run["Cloud Run"]
         iap --> api["Agent API"]
         console --> adminapi["Admin API"]
-        api --> graph["LangGraph agent"]
-        graph --> sqlgate["SQL safety layer"]
-        graph --> outguard["Output guard with Presidio"]
+        api --> agent["LangGraph agent"]
+        agent --> sqlgate["SQL safety layer"]
+        agent --> outguard["Output guard with Presidio"]
     end
 
     subgraph jobs["Cloud Run jobs on Cloud Scheduler"]
@@ -58,11 +58,11 @@ flowchart TB
         quality["Quality checks"]
     end
 
-    graph --> gemini["Gemini on Vertex AI"]
+    agent --> gemini["Gemini on Vertex AI"]
     sqlgate --> bq[("BigQuery authorized views")]
     bq --> raw[("Partitioned transaction tables")]
 
-    graph --> pg[("Cloud SQL Postgres with pgvector")]
+    agent --> pg[("Cloud SQL Postgres with pgvector")]
     adminapi --> pg
     gcs[("Golden Bucket on Cloud Storage")] --> ingest
     adminapi --> gcs
@@ -70,7 +70,7 @@ flowchart TB
     prefs --> pg
     quality --> langfuse
 
-    graph --> langfuse["Langfuse traces and scores"]
+    agent --> langfuse["Langfuse traces and scores"]
     api --> sentry["Sentry errors and alerts"]
 ```
 

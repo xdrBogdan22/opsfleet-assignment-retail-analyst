@@ -33,6 +33,7 @@ what comes next. Updated after every step.
 | 24 | Technical explanation, requirements traceability, example run | Every figure in the example run matches BigQuery | `71f59e4` |
 | 26 | Eval results recorded: Faithfulness 0.77 (gate 0.8, fails on schema questions), Relevancy 0.88, Goal Accuracy 1.00, safety 4 of 4, answers in 6 to 30 seconds | Full run plus one rerun | `ce856b0` |
 | 27 | Local Langfuse (`infra/langfuse/`, upstream compose v4.76.0); Mermaid fix: `graph` is a reserved word and broke the production diagram on GitHub | Live question: trace with 25 observations, 3 model calls, 2 tool calls, user and session; all 6 scores in ClickHouse; 5 diagrams render with mermaid-cli 11.4.2 | `4e05f88` |
+| 28 | Sentry turned on with a real DSN | A test `ZeroDivisionError` logged through the app's monitor reached Sentry as issue PYTHON-1, priority High | pending |
 | 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | `ce856b0` |
 
 ### Live run on 2026-11-08 (denim manager)
@@ -81,12 +82,11 @@ what comes next. Updated after every step.
 ## Next
 
 1. Owner decision: should Faithfulness apply to database-structure questions, or should those cases use only Goal Accuracy and text checks?
-2. Sentry: the owner creates the project and puts `SENTRY_DSN` in `.env`; then check an alert
-3. Owner: fill in "My experience with LangGraph" in `docs/01-technology-decisions.md`
-4. Could, if time allows: Golden Knowledge retrieval, LangMem preferences
-5. Final check on the free-tier key (`GOOGLE_API_KEY_FREE_TIER`) under reviewer conditions
+2. Owner: fill in "My experience with LangGraph" in `docs/01-technology-decisions.md`
+3. Could, if time allows: Golden Knowledge retrieval, LangMem preferences
+4. Final check on the free-tier key (`GOOGLE_API_KEY_FREE_TIER`) under reviewer conditions
 
 ## Not tested yet
 
-- Sentry with a real DSN: the code path runs only when `SENTRY_DSN` is set
+- Sentry email alert rule: the issue arrived; alert delivery depends on the project's alert settings
 - Debian or Ubuntu install steps, written from the pgvector docs but not run

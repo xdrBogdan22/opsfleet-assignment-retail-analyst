@@ -227,7 +227,8 @@ seconds are attached as scores, and `/good` or `/bad` adds a user rating. To
 debug a bad answer, open its trace and read the messages in order. For the
 prototype, `infra/langfuse/setup.sh` runs Langfuse locally with Docker; a live
 question produced a trace of 25 steps with all six scores. Sentry
-records errors without prompts and alerts by email. Without keys, the same
+records errors without prompts and alerts by email; a test error reached it as
+an issue. Without keys, the same
 turn summary goes to `retail_analyst.log` as one JSON line.
 
 Production adds dashboards on success rate, refusals, fallback use, bytes and

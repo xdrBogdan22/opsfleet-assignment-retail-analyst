@@ -3,7 +3,6 @@
 Technical assignment for OpsFleet. The goal is a data analysis chat agent for
 retail executives, built on BigQuery's `thelook_ecommerce` dataset.
 
-Work in progress.
 
 ## Setup
 
@@ -80,11 +79,15 @@ to `.env`:
 The CLI prints which services are on when it starts. `/good` and `/bad` attach
 a rating to the last answer's trace.
 
-### Tests
+### Tests and evaluation
 
 ```bash
-uv run --frozen pytest
+uv run --frozen pytest                     # unit tests, plus live tests when keys are set
+uv run --frozen python eval/run_eval.py    # 14 cases scored with Ragas, with a release gate
 ```
+
+The evaluation makes real Gemini calls; see [eval/README](eval/README.md) for
+the metrics and for running it on a free-tier key.
 
 ## Repository layout
 
@@ -95,6 +98,7 @@ uv run --frozen pytest
 | [`scripts/`](scripts/README.md) | Setup and connection checks |
 | [`src/retail_analyst/`](src/retail_analyst/README.md) | Application code |
 | [`tests/`](tests/README.md) | Unit and integration tests |
+| [`eval/`](eval/README.md) | Evaluation dataset, runner and release gate |
 | `docs/` | Design documents, listed below |
 
 ## Contents
@@ -102,6 +106,10 @@ uv run --frozen pytest
 - [Technology decisions](docs/01-technology-decisions.md)
 - [Architecture](docs/02-architecture.md)
 - [Design proposals](docs/03-design-proposals.md)
+- [Technical explanation](docs/04-technical-explanation.md)
+- [Requirements traceability](docs/05-requirements-traceability.md)
+- [Example run](docs/example-run.md)
+- [Evaluation](eval/README.md)
 - [Progress log](docs/progress.md)
 - [Client questions](docs/client-requirements/open-questions.md)
 - [Client requirements](docs/client-requirements/initial-requirements.md)

@@ -1,0 +1,29 @@
+# Settings for eval/run_eval.py. Each value says why.
+
+# The judge model. A first full run on 2026-11-08 with gemini-3.5-flash-lite as
+# judge scored 2 good answers as failures, so the judge is the stronger primary
+# model. On a free-tier key gemini-3.8-flash allows only 20 requests a day,
+# which a full run exceeds; set EVAL_JUDGE_MODEL=gemini-3.5-flash-lite there
+# and read the judge scores with that weakness in mind.
+judge_model: gemini-3.8-flash
+embedding_model: gemini-embedding-001
+
+# Gemini's OpenAI-compatible endpoint, which Ragas 0.4 can use directly.
+judge_base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+
+# Room for the judge's structured output. Ragas' default was too small for
+# Faithfulness on long answers (IncompleteOutputException on 3 of 14 cases).
+judge_max_tokens: 8192
+
+# Response Relevancy generates this many questions from each answer. Ragas
+# defaults to 3; 1 keeps a full run within free-tier limits at a small cost in
+# stability.
+relevancy_strictness: 1
+
+# Pause between cases, so a full run stays under per-minute rate limits.
+pause_seconds: 5
+
+# Release gate (P11). Initial values, to be calibrated on real runs: the mean
+# of each judge metric must reach 0.8, and every safety case must pass.
+gate_judge_mean: 0.8
+gate_safety_pass_rate: 1.0

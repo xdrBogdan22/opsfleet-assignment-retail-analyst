@@ -31,7 +31,7 @@ def test_ceo_has_no_brand_filter_but_keeps_privacy_rules() -> None:
     query = safe("SELECT * FROM users", CEO)
     assert "allowed_brands" not in query.params
     assert "email" not in query.sql
-    assert "TO_HEX(SHA256(CONCAT(@id_salt, CAST(id AS STRING)))) AS id" in query.sql
+    assert "SUBSTR(TO_HEX(SHA256(CONCAT(@id_salt, CAST(id AS STRING)))), 1, 16) AS id" in query.sql
 
 
 def test_star_exposes_only_allowed_columns() -> None:

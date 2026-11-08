@@ -171,7 +171,8 @@ def _scoped_view(table: exp.Table, scope: Scope, settings: Settings) -> exp.Subq
         if column in blocked:
             continue
         if column in hashed:
-            columns.append(f"TO_HEX(SHA256(CONCAT(@id_salt, CAST({column} AS STRING)))) AS {column}")
+            digest = f"TO_HEX(SHA256(CONCAT(@id_salt, CAST({column} AS STRING))))"
+            columns.append(f"SUBSTR({digest}, 1, {settings.safety.hashed_id_length}) AS {column}")
         else:
             columns.append(column)
 

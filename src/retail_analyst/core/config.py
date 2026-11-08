@@ -75,6 +75,7 @@ class BigQuery(Strict):
 class Safety(Strict):
     blocked_columns: dict[str, list[str]]
     hashed_id_columns: dict[str, list[str]]
+    hashed_id_length: int = Field(ge=8, le=64)
     demographic_columns: list[str]
     min_group_size: int = Field(ge=1)
     max_input_chars: int = Field(gt=0)

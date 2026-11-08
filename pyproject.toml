@@ -34,8 +34,10 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "langchain-community==0.4.1",
     "mypy>=2.4.1",
     "pytest>=9.2.0",
+    "ragas==0.4.3",
     "ruff>=0.17.4",
     "types-pyyaml>=6.0.12.20261103",
 ]
@@ -48,7 +50,7 @@ extraPaths = ["src"]
 
 [tool.ruff]
 line-length = 120
-src = ["src", "scripts", "tests"]
+src = ["src", "scripts", "tests", "eval"]
 # The client's starter code stays exactly as received.
 extend-exclude = ["docs"]
 
@@ -62,7 +64,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 mypy_path = "src"
 # google-api-core exception constructors carry no type hints.
-untyped_calls_exclude = ["google.api_core"]
+untyped_calls_exclude = ["google.api_core", "ragas.embeddings"]
 
 [[tool.mypy.overrides]]
 module = ["google.cloud.*", "sqlglot.*"]

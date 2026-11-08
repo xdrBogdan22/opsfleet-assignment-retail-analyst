@@ -59,7 +59,8 @@ def test_customer_ids_are_hashed_consistently_across_tables() -> None:
     )
     rows = run(make_safe(sql, DENIM, SETTINGS, id_salt="s"))
     assert len(rows) == 3
-    assert all(isinstance(row["user_id"], str) and len(row["user_id"]) == 64 for row in rows)
+    length = SETTINGS.safety.hashed_id_length
+    assert all(isinstance(row["user_id"], str) and len(row["user_id"]) == length for row in rows)
 
 
 def test_no_future_rows() -> None:

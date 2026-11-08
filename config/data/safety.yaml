@@ -16,6 +16,11 @@ hashed_id_columns:
   orders: [user_id]
   order_items: [user_id]
 
+# Hex characters kept from each hash. A full SHA-256 is 64 characters, which
+# executives cannot read. 16 characters are 64 bits: with 100,000 customers the
+# chance of any two sharing a code is about 3 in 10 billion (n^2 / 2^65).
+hashed_id_length: 16
+
 # Allowed only inside aggregates when a customer ID is also selected, so a row
 # cannot describe one identifiable customer. orders.gender is covered too.
 demographic_columns: [age, gender, city, state, country]

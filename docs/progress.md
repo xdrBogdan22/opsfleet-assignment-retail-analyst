@@ -26,8 +26,11 @@ what comes next. Updated after every step.
 | 17 | Output guard: Presidio with the small spaCy model, pinned in `uv.lock`, on the final answer and on report text before saving. Values from query results are allowed. | 4 unit tests, 1 graph test. Live CEO run: brand names such as Calvin Klein kept, top-5 figures matched BigQuery to the cent. | `8f13b60` |
 | 18 | Observability: Langfuse callback per turn with session and user, agent metrics and outcome as scores, `/good` and `/bad` as a user score, Sentry with prompts off, a JSON line per turn in the local log | 2 unit tests without services. Live run without keys: turn and feedback lines written; the answer (39 returned orders, outdoor brands) matched BigQuery. | `bcb8e5c` |
 | 19 | Clarification (P12): `ask_clarification` pauses with a question and 2 to 4 options, the answer goes back as the tool result, at most 2 per question | 2 graph tests: pause and resume, budget spent. Live: a vague question got an answer with a stated assumption instead of a question, as the prompt asks when one reading is reasonable. | `5272b1b` |
-| 20 | Architecture doc matches the built graph, tools, resilience table and config files; unused `empty_probes` setting removed | Doc review against the code | next commit |
-| 21 | Persona read on every turn; `scripts/set_persona.py` publishes a version and lists history | Ran it: v2 became active, v1 kept, then v1 restored for the demo | next commit |
+| 20 | Architecture doc matches the built graph, tools, resilience table and config files; unused `empty_probes` setting removed | Doc review against the code | `c9b64c0` |
+| 21 | Persona read on every turn; `scripts/set_persona.py` publishes a version and lists history | Ran it: v2 became active, v1 kept, then v1 restored for the demo | `c9b64c0` |
+| 22 | Customer codes shortened to 16 hex characters (64 bits) | Guard and BigQuery tests updated | next commit |
+| 23 | Evaluation: 14 cases, Ragas Faithfulness, Response Relevancy and Agent Goal Accuracy with Gemini as judge, banned-text checks, release gate | Partial and full runs, see below | next commit |
+| 24 | Technical explanation, requirements traceability, example run | Every figure in the example run matches BigQuery | next commit |
 
 ### Live run on 2026-11-08 (denim manager)
 
@@ -57,6 +60,12 @@ what comes next. Updated after every step.
 | Live CEO run: the output guard removed the status word "Returned" as a person | A PERSON finding needs at least two words |
 | The prompt offered `ask_clarification` before the tool existed, so a call would have failed | Tool and pause added |
 | The persona was read once per session, so a new tone needed a restart | Read on every turn |
+| Ragas 0.4.3 failed to import with the newest `langchain-community` | Dev dependency pinned to `langchain-community` 0.4.1 |
+| Agent Goal Accuracy scored a correct answer 0: the reference listed format details the judge's one-sentence summary drops | References rewritten as user goals |
+| Judge output cut off on long answers (`IncompleteOutputException`, 3 of 14 cases) | `judge_max_tokens: 8192` |
+| With `gemini-3.5-flash-lite` as judge, a correct refusal and a correct challenge to a false premise scored 0 | Judge set to `gemini-3.8-flash`, overridable with `EVAL_JUDGE_MODEL` |
+| Free-tier quota: `gemini-3.8-flash` allows 20 requests a day per project (Google's 429 says `quotaValue: 20`) | Development moved to the owner's second Gemini key; the free key is kept as `GOOGLE_API_KEY_FREE_TIER` for a final check under reviewer conditions |
+| One failed case stopped the whole eval run | Failures are recorded per case and fail the gate |
 
 ## Next
 

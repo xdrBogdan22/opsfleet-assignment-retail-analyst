@@ -66,6 +66,7 @@ what comes next. Updated after every step.
 | With `gemini-3.5-flash-lite` as judge, a correct refusal and a correct challenge to a false premise scored 0 | Judge set to `gemini-3.8-flash`, overridable with `EVAL_JUDGE_MODEL` |
 | Free-tier quota: `gemini-3.8-flash` allows 20 requests a day per project (Google's 429 says `quotaValue: 20`) | Development moved to the owner's second Gemini key; the free key is kept as `GOOGLE_API_KEY_FREE_TIER` for a final check under reviewer conditions |
 | One failed case stopped the whole eval run | Failures are recorded per case and fail the gate |
+| Clean install without keys: the BigQuery test module built its client at import and crashed collection; a model unit test needed a key | Client created on first use; the unit test sets a fake key. Clean copy: 63 passed, 13 skipped. |
 
 ## Next
 

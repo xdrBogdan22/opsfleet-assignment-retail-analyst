@@ -7,6 +7,12 @@ from retail_analyst.llm.models import FALLBACK_ERRORS, build_chat_model
 SETTINGS = get_settings().models
 
 
+@pytest.fixture(autouse=True)
+def fake_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Building the client needs a key, though these tests never call the API.
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key-not-used")
+
+
 def with_models(*entries: ModelEntry):  # type: ignore[no-untyped-def]
     return SETTINGS.model_copy(update={"models": list(entries)})
 

@@ -6,6 +6,7 @@ dataset, well inside the free tier.
 
 import json
 import os
+from functools import lru_cache
 from typing import Any, cast
 
 import pytest
@@ -27,11 +28,16 @@ pytestmark = [
 SETTINGS = get_settings()
 DENIM = Scope(user_id="denim_manager", brands=("Diesel", "True Religion", "7 For All Mankind", "Joe's Jeans"))
 CEO = Scope(user_id="ceo", brands=None)
-CLIENT = bigquery.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT"))
+
+
+@lru_cache(maxsize=1)
+def client() -> bigquery.Client:
+    # Created on first use, so the module still imports and skips without a project.
+    return bigquery.Client(project=os.environ["GOOGLE_CLOUD_PROJECT"])
 
 
 def run(query: SafeQuery) -> list[dict[str, object]]:
-    return run_query(CLIENT, query, SETTINGS.bigquery).rows
+    return run_query(client(), query, SETTINGS.bigquery).rows
 
 
 def test_manager_sees_only_own_brands() -> None:
@@ -70,7 +76,7 @@ def test_no_future_rows() -> None:
 
 def test_runner_returns_capped_rows() -> None:
     query = make_safe("SELECT id, brand FROM products", CEO, SETTINGS, id_salt="s")
-    result = run_query(CLIENT, query, SETTINGS.bigquery)
+    result = run_query(client(), query, SETTINGS.bigquery)
     assert len(result.rows) == SETTINGS.bigquery.max_rows
     assert result.truncated
 
@@ -79,14 +85,14 @@ def test_runner_rejects_queries_above_the_byte_cap() -> None:
     tiny = SETTINGS.bigquery.model_copy(update={"max_bytes_billed": 1000})
     query = make_safe("SELECT COUNT(*) FROM order_items", CEO, SETTINGS, id_salt="s")
     with pytest.raises(QueryFailedError) as error:
-        run_query(CLIENT, query, tiny)
+        run_query(client(), query, tiny)
     assert error.value.kind is FailureKind.NARROW
 
 
 def test_runner_flags_unknown_columns_for_repair() -> None:
     query = make_safe("SELECT revenue FROM order_items", CEO, SETTINGS, id_salt="s")
     with pytest.raises(QueryFailedError) as error:
-        run_query(CLIENT, query, SETTINGS.bigquery)
+        run_query(client(), query, SETTINGS.bigquery)
     assert error.value.kind is FailureKind.REPAIR
 
 
@@ -96,7 +102,7 @@ def test_run_sql_tool_returns_scoped_rows() -> None:
         author="Alex",
         conversation_id="c1",
         settings=SETTINGS,
-        bigquery=CLIENT,
+        bigquery=client(),
         db=cast(Any, None),
         id_salt="s",
         budget=Budget.for_question(SETTINGS),

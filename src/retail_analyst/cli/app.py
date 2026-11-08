@@ -47,7 +47,9 @@ def main(argv: list[str] | None = None) -> int:
     monitor = start_monitor(settings)
     salt = os.environ.get("ID_HASH_SALT") or _temporary_salt()
 
-    with open_pool(os.environ["DATABASE_URL"]) as pool:
+    # Opened reports are copied here for the browser. The folder is private to
+    # this user and removed on exit, so a deleted report leaves no copy behind.
+    with open_pool(os.environ["DATABASE_URL"]) as pool, tempfile.TemporaryDirectory(prefix="retail-reports-") as tmp:
         try:
             session = build_session(pool, args.user, settings, bigquery.Client(), salt)
         except UnknownUserError:
@@ -57,13 +59,13 @@ def main(argv: list[str] | None = None) -> int:
         services = ", ".join(monitor.services) or "local log only"
         print(f"Signed in as {session.user.name}. Monitoring: {services}.\n{HELP}")
         try:
-            _chat(graph, session, monitor, pool)
+            _chat(graph, session, monitor, pool, Path(tmp))
         finally:
             monitor.close()
     return 0
 
 
-def _chat(graph: Graph, session: Session, monitor: Monitor, pool: Pool) -> None:
+def _chat(graph: Graph, session: Session, monitor: Monitor, pool: Pool, reports_dir: Path) -> None:
     conversation = uuid.uuid4().hex
     while True:
         try:
@@ -79,12 +81,12 @@ def _chat(graph: Graph, session: Session, monitor: Monitor, pool: Pool) -> None:
         elif text in ("/good", "/bad"):
             print(monitor.feedback(good=text == "/good"))
         elif text.startswith("/open"):
-            print(_open_report(pool, session.user.id, text.removeprefix("/open").strip()))
+            print(_open_report(pool, session.user.id, text.removeprefix("/open").strip(), reports_dir))
         elif text:
-            print(f"\nanalyst> {_ask(graph, session, monitor, text, conversation)}")
+            print(f"\nanalyst> {_ask(graph, session, monitor, text, conversation, reports_dir)}")
 
 
-def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversation: str) -> str:
+def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversation: str, reports_dir: Path) -> str:
     """Runs one question, including any confirmation pause, and never raises."""
     turn = monitor.start_turn(session.user.id, conversation)
     state: dict[str, Any] | None = None
@@ -92,7 +94,11 @@ def _ask(graph: Graph, session: Session, monitor: Monitor, text: str, conversati
         state = graph.invoke(new_question(text, conversation, session.settings), turn.config, context=session)
         while "__interrupt__" in state:
             request = state["__interrupt__"][0].value
-            answer = _ask_confirmation(request) if request["kind"] == "confirm_delete" else _ask_question(request)
+            if request["kind"] == "confirm_delete":
+                answer = _ask_confirmation(request)
+                _remove_copies(reports_dir, [report["id"] for report in request["reports"]])
+            else:
+                answer = _ask_question(request)
             state = graph.invoke(Command(resume=answer), turn.config, context=session)
     except ModelError:
         log.exception("model failure")
@@ -129,13 +135,23 @@ def _ask_confirmation(request: dict[str, Any]) -> str:
         return ""
 
 
-def _open_report(pool: Pool, user_id: str, report_id: str) -> str:
+def _report_copy(reports_dir: Path, report_id: int) -> Path:
+    return reports_dir / f"report-{report_id}.html"
+
+
+def _remove_copies(reports_dir: Path, report_ids: list[int]) -> None:
+    """Removes browser copies of reports that may be deleted; /open writes them again if kept."""
+    for report_id in report_ids:
+        _report_copy(reports_dir, report_id).unlink(missing_ok=True)
+
+
+def _open_report(pool: Pool, user_id: str, report_id: str, reports_dir: Path) -> str:
     if not report_id.isdigit():
         return "Usage: /open <report id>"
     html = load_report_html(pool, user_id, int(report_id))
     if html is None:
         return f"You have no report {report_id}."
-    path = Path(tempfile.gettempdir()) / f"retail-report-{report_id}.html"
+    path = _report_copy(reports_dir, int(report_id))
     path.write_text(html, encoding="utf-8")
     webbrowser.open(path.as_uri())
     return f"Opened report {report_id} in your browser ({path})."

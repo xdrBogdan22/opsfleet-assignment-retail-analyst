@@ -177,6 +177,9 @@ stores the exact list with an owner and an expiry. The graph pauses with
 expiry. Any other answer cancels. "Reports from this conversation" works the
 same way with a conversation filter. LangGraph may re-run a node after a
 resume; the single-use check makes that harmless.
+`/open` copies a report into a private temporary folder for the browser. The
+CLI removes the copy when a delete is confirmed and the folder on exit, so a
+deleted report leaves nothing on disk.
 
 Evidence: Postgres tests show another user's matching report is never listed,
 and a live run cancelled and then deleted exactly the two listed reports.

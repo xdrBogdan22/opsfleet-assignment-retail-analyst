@@ -724,6 +724,13 @@ SendGrid; nothing else changes.
 About 150 lines with tests. The model can propose a send but never perform one,
 which is the same guarantee the delete flow gives.
 
+### Extending with a coding agent
+
+The repository carries instructions for Claude Code. `CLAUDE.md` lists the
+commands and the rules that protect the design, and the `/add-tool` skill in
+`.claude/skills/` walks an agent through the steps above, from classifying the
+tool to its eval case.
+
 ## Requirement coverage
 
 | Requirement | Production design | Prototype |

@@ -106,6 +106,7 @@ the metrics and for running it on a free-tier key.
 | [`tests/`](tests/README.md) | Unit and integration tests |
 | [`eval/`](eval/README.md) | Evaluation dataset, runner and release gate |
 | [`infra/`](infra/langfuse/README.md) | Local Langfuse with Docker |
+| `.claude/`, [`CLAUDE.md`](CLAUDE.md) | Project rules and the `/add-tool` skill for coding agents |
 | `docs/` | Design documents, listed below |
 
 ## Contents

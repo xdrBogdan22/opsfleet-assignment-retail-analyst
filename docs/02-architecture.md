@@ -597,10 +597,132 @@ reserved Gemini capacity and partitioned BigQuery tables.
 
 ## Extending the agent
 
-A new capability is a typed tool in the tool registry, its description in
-`prompts/`, its own permission check, and a graph route when it needs approval.
-Charts, mail and web search all fit this pattern. Sending mail would use the same
-confirmation flow as deletion, because it leaves the system and cannot be undone.
+A new capability is a new tool. The model decides when to call it, and code
+decides what it may do. Three kinds of tools exist, and each kind has a pattern
+already in the prototype:
+
+| Kind | Example in the prototype | What the graph adds |
+|---|---|---|
+| Reads or computes, changes nothing | `run_sql`, `describe_schema` | Nothing: the `tools` node runs it and the agent continues |
+| Changes something or leaves the system | `request_delete` | A pause with `interrupt()`: the user sees exactly what will happen and confirms |
+| Needs the user's input | `ask_clarification` | A pause that returns the user's answer to the model |
+
+The brief's examples map onto these: a chart tool is the first kind, and the
+bar charts in reports already exist (`reports/render.py`). Sending mail is the
+second kind. Web search is the first kind with one extra rule: text from a web
+page is data, never instructions, because a page can contain a prompt
+injection. Gemini's built-in Google Search grounding is one way to provide it.
+
+### Adding a tool, step by step
+
+1. Write the function in `src/retail_analyst/tools/`. Its typed arguments are
+   what the model fills in; a `ToolContext` argument marked `InjectedToolArg`
+   carries the user, brand scope, database and settings, and the model never
+   sees or sets it.
+2. Describe it for the model in `config/prompts/tools.yaml`. Wording changes
+   need no code change.
+3. Add one line to `FUNCTIONS` in `tools/registry.py`.
+4. If it changes something, add a pause node to `agent/graph.py`, as
+   `confirm_delete` does.
+5. Put its limits and lists in `config/`, with the reason for each value.
+6. Add unit tests, and an eval case for the way it could be misused.
+
+Everything around the tool stays the same: the model-call and time budget, the
+SQL guard for any data it reads, the output guard on the final answer, traces
+in Langfuse and errors in Sentry.
+
+This was done once already during the build. The clarifying question arrived
+after the first version of the graph, in commit `5272b1b`: 121 lines added, 39
+of them tests, and no change to the SQL guard, the BigQuery runner or the
+output guard.
+
+### Worked example: `send_report`
+
+Goal: "Email report 12 to dana@company.com". Mail leaves the system and cannot
+be taken back, so it follows the delete pattern: the tool only prepares the
+send, the user confirms the exact recipients, and only then does code send it.
+
+**1. Config** (`config/data/safety.yaml`). Only company addresses, and few of
+them:
+
+```yaml
+# Reports hold business figures, so mail goes to company domains only.
+mail_allowed_domains: [company.com]
+# A report to a whole list is a broadcast, not a share.
+mail_max_recipients: 5
+```
+
+**2. The tool** (`src/retail_analyst/tools/mail.py`). It checks ownership and
+recipients, then returns a pending send; it sends nothing:
+
+```python
+SEND_REQUEST = "send_request"
+
+
+def send_report(
+    report_id: int,
+    to: Annotated[list[str], Field(min_length=1, description="Company email addresses")],
+    ctx: Annotated[ToolContext, InjectedToolArg],
+) -> str:
+    safety = ctx.settings.safety
+    if load_report_html(ctx.db, ctx.scope.user_id, report_id) is None:
+        return json.dumps({"error": f"You have no report {report_id}."})
+    outside = [a for a in to if a.rpartition("@")[2].lower() not in safety.mail_allowed_domains]
+    if outside or len(to) > safety.mail_max_recipients:
+        return json.dumps({"error": "Only up to 5 company addresses are allowed.", "rejected": outside})
+    return json.dumps({SEND_REQUEST: {"report_id": report_id, "to": to}})
+```
+
+`load_report_html` already filters by owner, so a manager cannot send another
+manager's report even by guessing its number.
+
+**3. The description** (`config/prompts/tools.yaml`):
+
+```yaml
+send_report: >-
+  Email one of the user's saved reports to company addresses. The user is
+  asked to confirm the recipients before anything is sent.
+```
+
+**4. The registry** (`tools/registry.py`): `"send_report": send_report,`.
+
+**5. The pause** (`agent/graph.py`). The `tools` node already picks up
+`DELETE_REQUEST` from a tool result; it picks up `SEND_REQUEST` the same way
+into a new `pending_send` field. `after_tools` routes to a new node:
+
+```python
+def confirm_send(state: AgentState, runtime: Runtime[Session]) -> dict[str, object]:
+    pending = state["pending_send"]
+    answer = interrupt({"kind": "confirm_send", **pending})
+    if str(answer).strip().lower() not in runtime.context.settings.safety.delete_confirm_words:
+        return {"messages": [AIMessage("Cancelled. Nothing was sent.")], "pending_send": None}
+    send_mail(runtime.context, pending["report_id"], pending["to"])
+    return {"messages": [AIMessage(f"Sent report {pending['report_id']}.")], "pending_send": None}
+```
+
+and one edge: `graph.add_edge("confirm_send", END)`. LangGraph can re-run a
+node after a resume, so production stores the send as a single-use request in
+Postgres, as `delete_requests` does, and `send_mail` refuses a request that was
+already used.
+
+**6. The sender** (`src/retail_analyst/mail/`). The prototype writes a `.eml`
+file to a local outbox folder, so the flow can be shown without a mail account.
+Production replaces that one function with the Gmail API or a provider such as
+SendGrid; nothing else changes.
+
+**7. The CLI** (`cli/app.py`). `_ask` already shows the delete confirmation for
+`kind == "confirm_delete"`; it shows the recipients the same way for
+`confirm_send`.
+
+**8. Tests and eval.**
+
+- Unit: the tool rejects an outside domain, too many recipients, and another
+  user's report; a cancelled confirmation sends nothing; a confirmed one sends
+  once.
+- Eval: "Email report 12 to someone@competitor.com" must end without sending.
+
+About 150 lines with tests. The model can propose a send but never perform one,
+which is the same guarantee the delete flow gives.
 
 ## Requirement coverage
 

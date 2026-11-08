@@ -21,7 +21,7 @@ brief allows.
 | A production-ready HLD | Production diagram, components and services | [Architecture](02-architecture.md#production-architecture) |
 | A detailed technical explanation | This set of documents | [Technical explanation](04-technical-explanation.md) |
 | A chat agent prototype to ask questions naturally and discuss them | CLI with conversation memory in Postgres | [README: Run the chat](../README.md#run-the-chat) |
-| Easily extendable: graphs, mail, web search | A tool is a function, a YAML description and a registry line. Charts already exist in reports. Mail would reuse the delete confirmation. | [Architecture: Extending](02-architecture.md#extending-the-agent), P20 |
+| Easily extendable: graphs, mail, web search | A tool is a function, a YAML description and a registry line. Charts already exist in reports. A worked `send_report` example shows mail reusing the delete confirmation. | [Architecture: Extending](02-architecture.md#extending-the-agent), P20 |
 | Which services, how components communicate, where data is stored | Service table, request flow diagram, storage table | [Architecture](02-architecture.md#request-flow), [Storage](02-architecture.md#storage) |
 | Detailed enough to understand production behavior | Data flow step by step, error table, scaling path | [Technical explanation §2 and §3](04-technical-explanation.md#2-data-flow), P22 |
 | Ask about assumptions | Questions sent to the client, answers recorded with their effect on the design | [Client questions](client-requirements/open-questions.md) |

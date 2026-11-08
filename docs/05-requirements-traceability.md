@@ -12,7 +12,7 @@ brief allows.
 | A data analysis agent for non-technical executives | A CLI chat agent that answers in plain business language, with a persona the company sets | [Technical explanation §5](04-technical-explanation.md#agility-persona-management) |
 | Executives ask complex questions about sales and performance, such as underspending by state, a churn spike, or a Q1 report with Q2 actions | Each example is an eval case; the agent chains queries for multi-step questions and saves reports | [eval/dataset.yaml](../eval/dataset.yaml) |
 | A read-only SQL connection to raw transaction logs | BigQuery `thelook_ecommerce`. The SQL guard allows one SELECT on four tables and rewrites them into scoped views. | [Architecture: SQL safety layer](02-architecture.md#sql-safety-layer) |
-| A Golden Knowledge bucket of Question, SQL, Report trios | Design: Cloud Storage source, pgvector index, hybrid retrieval | [Technical explanation §5](04-technical-explanation.md#hybrid-intelligence), P3 |
+| A Golden Knowledge bucket of Question, SQL, Report trios | Design: Cloud Storage source, pgvector index, hybrid retrieval | [Architecture: Golden Knowledge](02-architecture.md#golden-knowledge) |
 
 ## The task
 
@@ -30,9 +30,9 @@ brief allows.
 
 | Brief | Answer | Where |
 |---|---|---|
-| 1. Use the Golden Bucket to understand how analysts interpreted questions | Design: retrieve the 3 most similar approved trios as worked examples | P3 |
-| 1. How the bucket is updated over time | Analysts add trios; rated answers and corrections become candidates an analyst approves; a job validates SQL against the current schema | [Technical explanation §5](04-technical-explanation.md#hybrid-intelligence) |
-| 1. How relevant data is provided at query time | Masked question, vector and full-text search, rank fusion, recency weight, top 3 in the prompt | P3 |
+| 1. Use the Golden Bucket to understand how analysts interpreted questions | Design: retrieve the 3 most similar approved trios as worked examples | [Architecture: Golden Knowledge](02-architecture.md#golden-knowledge) |
+| 1. How the bucket is updated over time | Analysts add trios; rated answers and corrections become candidates an analyst approves; a nightly job validates SQL against the current schema | [Architecture: Golden Knowledge](02-architecture.md#golden-knowledge) |
+| 1. How relevant data is provided at query time | Masked question, vector and full-text search, rank fusion, recency weight, top 3 in the prompt | [Architecture: Golden Knowledge](02-architecture.md#golden-knowledge) |
 | 2. Only analysis questions, safe against malicious users | Prototype: input checks, prompt scope, refusals; safety eval cases | [Technical explanation §5](04-technical-explanation.md#safety-and-pii-masking) |
 | 2. PII must never appear in the output | Prototype: blocked columns, hashed IDs, Presidio on answers and reports | `src/retail_analyst/safety/` |
 | 2. Each user analyzes only products related to them | Prototype: brand scope applied inside every table before aggregation | `config/seed/demo.yaml`, SQL guard tests |

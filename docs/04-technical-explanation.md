@@ -130,17 +130,12 @@ denim_manager`. A real session, with figures checked against BigQuery, is in
 
 ### Hybrid intelligence
 
-Design only in the prototype (P3). Analysts' trios land in Cloud Storage. A
-job validates each trio's SQL on the current schema, masks brands, states and
-dates in the question, embeds it and indexes it in pgvector with a full-text
-index. At question time the agent masks the new question the same way, runs
-vector and full-text search, merges the two lists with reciprocal rank fusion,
-adds a small recency weight and puts the top 3 trios in the prompt as worked
-examples. The method follows DAIL-SQL, OpenSearch-SQL and Generative Agents.
-Retrieved SQL is only an example: anything based on it still passes the guard.
-
-The bucket grows two ways: analysts add trios, and highly rated answers or
-corrections become candidates that an analyst approves.
+Design only (P3). Approved analyst trios are validated against the current
+schema, masked and indexed in pgvector. For each question the agent runs vector
+and full-text search, merges them with reciprocal rank fusion and a small
+recency weight, and puts the top 3 in the prompt as worked examples. The full
+flow, a worked example with numbers, how it changes the answer and the studies
+behind it are in [Architecture: Golden Knowledge](02-architecture.md#golden-knowledge).
 
 ### Safety and PII masking
 

@@ -52,6 +52,9 @@ Verified on the development machine: Postgres 18.3 with pgvector 0.8.7.
 
 ## P3. Golden Knowledge retrieval
 
+This is the decision record. The full design, with a worked example, is in
+[Architecture: Golden Knowledge](02-architecture.md#golden-knowledge).
+
 Decision: hybrid search on masked questions, with a small recency weight. The
 technical explanation cites the studies in the table below.
 

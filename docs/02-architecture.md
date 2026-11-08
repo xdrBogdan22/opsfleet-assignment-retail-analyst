@@ -298,30 +298,229 @@ or secrets.
 
 ## Golden Knowledge
 
+Status: design only. The brief calls the bucket theoretical and provides no
+trios, so the prototype has no data to load. This section is the single place
+that describes it; other documents link here.
+
+### What problem it solves
+
+A question such as "why did churn spike?" can be answered many ways: churn over
+90 days or 30, divided by all customers or by active ones, broken down by
+channel or by category. The analysts have already answered questions like it,
+and their trios record the choices they made. Showing the model two or three of
+those trios before it writes SQL makes it answer the way the company's analysts
+do: same metric definitions, same joins, same report shape.
+
+This is dynamic few-shot prompting: instead of fixed examples in the prompt,
+the agent retrieves the examples closest to each new question.
+
+### What a trio is
+
+A trio is one past analysis by a human expert, stored as one file:
+
+| Part | Example |
+|---|---|
+| Question | "Why did churn rise in March 2025 for Levi's?" |
+| SQL | The query the analyst ran, with its date range and brand filter |
+| Report | The analyst's answer: findings, figures, action items |
+| Metadata | Author, date approved, tables used |
+
+### The flow, step by step
+
 ```mermaid
-flowchart LR
-    expert["Analyst trio"] --> bucket[("Golden Bucket")]
-    candidate["Rated answer or correction"] --> review{"Analyst review"}
-    review -- "Approved" --> bucket
-    bucket --> job["Ingestion job"]
-    job --> check["Validate SQL on the current schema"]
-    check --> index[("golden_trios in pgvector")]
-    question["New question"] --> mask["Mask brands, states, dates"]
-    mask --> search["Vector and full-text search"]
-    index --> search
-    search --> rank["Merge with RRF, add recency"]
-    rank --> prompt["Top 3 examples in the prompt"]
+flowchart TB
+    subgraph offline["Offline: keeping the bucket current"]
+        direction TB
+        add["1. Analyst adds a trio file"] --> bucket[("Golden Bucket on Cloud Storage")]
+        candidate["Rated answer or correction"] --> review{"Analyst review"}
+        review -- "Approved" --> bucket
+        bucket --> job["2. Ingestion job"]
+        job --> validate["3. Validate SQL on today's schema"]
+        validate -- "Fails" --> stale["Marked stale, analyst told"]
+        validate -- "Passes" --> clean["4. Mask question, strip figures"]
+        clean --> index[("5. golden_trios: embedding and text index")]
+    end
+    subgraph online["Online: each question"]
+        direction TB
+        question["6. New question"] --> mask["7. Mask the question the same way"]
+        mask --> vector["8a. Vector search, top 10"]
+        mask --> text["8b. Full-text search, top 10"]
+        vector --> fuse["9. Merge with RRF, add recency"]
+        text --> fuse
+        fuse --> prompt["10. Top 3 trios in the prompt"]
+        prompt --> model["11. Gemini writes its own SQL"]
+        model --> guard["12. SQL guard, as for any query"]
+    end
+    index --> vector
+    index --> text
 ```
 
-At query time the agent masks the question, runs vector and full-text search on
-approved trios, merges the two rankings with reciprocal rank fusion and adds a
-small recency weight. The top three go into the prompt as examples. The method
-follows DAIL-SQL, OpenSearch-SQL and Generative Agents (P3). Retrieved SQL is only
-an example, and any SQL based on it still passes the safety layer.
+**Offline, when a trio is added or the schema changes**
 
-A trio that fails validation on the current schema stays out of retrieval. The
-embedding call runs on a separate embedding model, so it does not count toward the
-2 to 5 Gemini calls.
+1. **An analyst adds a trio.** They drop a file into the Golden Bucket, a
+   versioned Cloud Storage folder. A trio can also start as a candidate: an
+   answer a user rated `/good`, or a correction a user made. A candidate enters
+   the bucket only after an analyst approves it, so one user cannot teach every
+   user a mistake.
+2. **The ingestion job picks it up.** A Cloud Run job runs on each new file and
+   every night.
+3. **It validates the SQL on today's schema.** The job sends the trio's SQL
+   through the same SQL guard the agent uses, then a BigQuery dry run, which
+   checks the query without running it or paying for it. A trio fails when the
+   data has moved on since the analyst wrote it: a column was renamed or
+   dropped, a table was split, or the query reads a column that is now blocked
+   as personal data. A failed trio is marked stale and kept out of retrieval,
+   because an example that no longer runs would teach the model broken SQL. The
+   analyst who owns it is told, so they can fix or retire it. The nightly run
+   catches trios that a schema change broke after they were approved.
+4. **It masks the question and strips the figures.** Brands, states, dates and
+   numbers in the question become placeholders: "Why did churn rise in March
+   2025 for Levi's?" becomes "Why did churn rise in `<MONTH>` `<YEAR>` for
+   `<BRAND>`?". Matching then works on what was asked, not on which brand or
+   month: a question about Diesel last month should find the Levi's March
+   trio. The same values in the SQL become query parameters. From the report,
+   the job keeps only its outline (section titles, metric definitions, the
+   kind of action items) and drops every figure and brand name. Without this
+   step, a trio about another manager's brands would show their numbers to a
+   manager who must not see them.
+5. **It indexes the trio.** The masked question gets an embedding from
+   `gemini-embedding-001`, and a Postgres full-text index. Both live in the
+   `golden_trios` table in Cloud SQL with pgvector, next to the approval date.
+
+**Online, on every question**
+
+6. **A question arrives**, for example from the denim manager: "Why did our
+   churn rate spike last month?"
+7. **The agent masks it the same way:** "Why did our churn rate spike
+   `<PERIOD>`?"
+8. **Two searches run in parallel**, each returning its 10 best trios:
+   - a vector search, which finds trios that mean the same thing in other
+     words ("customers leaving" matches "churn");
+   - a full-text search, which finds trios that share exact terms the
+     embedding may blur, such as "AOV", "YTD" or a column name.
+9. **The two lists are merged with reciprocal rank fusion (RRF), then a small
+   recency weight is added.** Explained with numbers below.
+10. **The top 3 trios go into the system prompt** as worked examples.
+11. **Gemini writes its own SQL** for this user's question, using the examples
+    as a guide.
+12. **That SQL passes the SQL guard** like any other query. A retrieved example
+    never runs as it is, and it cannot widen what the user may see.
+
+None of this adds a model call. The embedding runs on a separate embedding
+model, outside the 2 to 5 Gemini calls per question, and the search is two
+Postgres queries.
+
+### How RRF works
+
+The two searches score trios on different scales. Vector search returns a
+distance, full-text search returns a relevance number, and adding them would
+mean nothing. RRF ignores the scores and uses only each trio's position in each
+list:
+
+```text
+RRF(trio) = sum over both lists of 1 / (60 + position of the trio in that list)
+```
+
+A trio near the top of both lists beats a trio at the top of one list only.
+The constant 60 keeps the first place from dominating: position 1 is worth
+1/61 and position 3 is worth 1/63, almost the same, so agreement between the
+two searches matters more than winning one of them. Cormack, Clarke and
+Büttcher introduced RRF in 2009, fixed 60 in a pilot study and found it near
+best. On the TREC tests it beat the best single system and the standard
+Condorcet and CombMNZ methods by 4 to 5% on average ([paper][rrf]). Postgres
+can compute it in one SQL query ([Supabase guide][supabase]).
+
+Recency comes after RRF. The RRF score is divided by its maximum, 2/61, so it
+runs from 0 to 1, and combined with the trio's age:
+
+```text
+recency = 0.5 ^ (age in days / 180)
+final   = 0.85 * normalized RRF + 0.15 * recency
+```
+
+A trio approved today scores 1 on recency, and one approved 180 days ago scores
+0.5. The weight stays small because an old analysis can still be correct; it
+only breaks near ties in favor of newer practice. The idea of mixing relevance
+with an exponential recency decay comes from Generative Agents ([paper][ga]).
+The weights and the half-life are starting values, to be tuned with the eval
+set.
+
+### A worked example
+
+The denim manager asks "Why did our churn rate spike last month?". Four trios
+come back from the two searches:
+
+| Trio | Vector rank | Full-text rank | RRF | Normalized | Age | Recency | Final |
+|---|---|---|---|---|---|---|---|
+| T17 Churn rise in a month, for a brand | 1 | 1 | 1/61 + 1/61 = 0.0328 | 1.00 | 400 days | 0.21 | 0.88 |
+| T03 Repeat purchase by monthly cohort | 2 | 3 | 1/62 + 1/63 = 0.0320 | 0.98 | 30 days | 0.89 | **0.96** |
+| T88 Churn by traffic source | not in top 10 | 2 | 1/62 = 0.0161 | 0.49 | 90 days | 0.71 | 0.52 |
+| T42 Revenue drop by category | 3 | not in top 10 | 1/63 = 0.0159 | 0.48 | 300 days | 0.31 | 0.46 |
+
+The top 3 are T03, T17 and T88. Three things show in the table:
+
+- T17 and T03 are almost tied on relevance, so recency decides their order.
+- T88 appears in only one list but still makes the top 3, because full-text
+  search caught the word "churn" in a question the embedding ranked lower.
+- T42 is recent enough to matter, but recency is too small a weight to lift
+  an off-topic trio above a relevant one.
+
+### How it changes the answer
+
+The system prompt gains one section, after the business definitions:
+
+```text
+Worked examples from the company's analysts. Use them for metric definitions,
+joins and report structure. Write your own SQL for this user's question. The
+business definitions above take precedence over any example.
+
+Example 1 (approved 2026-10-09)
+Question: Why did repeat purchases fall for <BRAND> in <MONTH>?
+SQL: WITH first_orders AS (...) SELECT cohort_month, ... WHERE brand IN UNNEST(@brands) ...
+Report outline: 1. Repeat rate by monthly cohort  2. Breakdown by traffic source
+  3. Action items: retention offers for the weakest cohort
+```
+
+What the model does differently with it:
+
+| Without trios | With trios |
+|---|---|
+| Picks its own churn formula, which can differ between conversations ([Known limitations](known-limitations.md#2-the-churn-rate-has-no-fixed-formula)) | Uses the formula the analysts used |
+| Finds joins and date logic by trial, sometimes spending SQL repairs | Starts from a query shape that already ran on this schema |
+| Chooses its own report structure | Follows the sections analysts use for this kind of question |
+
+The cost is prompt length: three trios add about 1,500 tokens. If retrieval
+fails or nothing scores high enough, the agent answers without examples, as the
+prototype does today, so retrieval can only help or do nothing.
+
+The gain is measured, not assumed: run the eval set with and without retrieval
+and compare Goal Accuracy, Faithfulness and SQL repairs per question.
+
+### Why this method
+
+| Source | What it found | What we take from it |
+|---|---|---|
+| DAIL-SQL, Gao et al. 2023 ([paper][dail]) | Masks domain words in the new question and in the example questions, then ranks examples by similarity of the masked questions and of their SQL. It reached 86.6% execution accuracy on the Spider benchmark. | Mask brands, states and dates before matching |
+| OpenSearch-SQL, 2025 ([paper][opensearch]) | Removing the retrieved examples lowered execution accuracy on the BIRD Mini-Dev set from 70.6% to 66.0% | Evidence that retrieved examples help |
+| Text2SQL-Flow, 2025 ([paper][t2sflow]) | Selecting examples by a draft SQL fails when the draft is wrong | DAIL-SQL also compares draft SQL; we skip that part, since it costs an extra model call and the draft can mislead |
+| RRF, Cormack et al. 2009 ([paper][rrf]) | Rank fusion beats the best single ranking and score-based fusion | Merge vector and full-text results by rank |
+| Generative Agents, Park et al. 2023 ([paper][ga]) | Retrieval mixes relevance with an exponential recency decay | A small recency weight with a half-life |
+
+These results come from academic benchmarks, not from this agent, which is why
+the eval comparison above decides the final weights.
+
+### Settings
+
+When built, these join `config/` with a reason for each value: top 3 trios, 10
+candidates per search, RRF constant 60, relevance weight 0.85, half-life 180
+days.
+
+[dail]: https://arxiv.org/abs/2308.15363
+[opensearch]: https://arxiv.org/abs/2502.14913
+[t2sflow]: https://arxiv.org/abs/2511.10192
+[rrf]: https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf
+[ga]: https://arxiv.org/abs/2304.03442
+[supabase]: https://supabase.com/docs/guides/ai/hybrid-search
 
 ## Learning loop
 
@@ -373,8 +572,7 @@ comment with its reason and source (P20).
 | `data/safety.yaml` | Blocked and hashed columns, injection patterns, delete confirmation, output guard | 0.3 output threshold, from measured Presidio scores |
 | `prompts/agent.yaml`, `prompts/tools.yaml` | System prompt, GoogleSQL notes, tool descriptions | Editable without code changes |
 
-Golden retrieval settings (top k, weights, half-life) join this list when that
-part is built.
+Golden Knowledge settings join this list when that part is built ([Golden Knowledge](#settings)).
 
 ## Observability
 

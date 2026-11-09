@@ -35,7 +35,7 @@ what comes next. Updated after every step.
 | 27 | Local Langfuse (`infra/langfuse/`, upstream compose v4.76.0); Mermaid fix: `graph` is a reserved word and broke the production diagram on GitHub | Live question: trace with 25 observations, 3 model calls, 2 tool calls, user and session; all 6 scores in ClickHouse; 5 diagrams render with mermaid-cli 11.4.2 | `4e05f88` |
 | 28 | Sentry turned on with a real DSN | A test `ZeroDivisionError` logged through the app's monitor reached Sentry as issue PYTHON-1, priority High | `34a524c` |
 | 29 | `/open` copies go to a private per-session temporary folder, removed on exit; a confirmed delete removes the copies of the listed reports | 1 CLI test; live delete of report 45 checked in Postgres | `5f4ab7e` |
-| 30 | Delete by report number: `request_delete` takes `report_ids`, limited to the user's own reports; unknown numbers come back as `not_found` | 3 Postgres tests (by number, another user's number, a missing number); live: the owner saw exactly report 2, the CEO found nothing | pending |
+| 30 | Delete by report number: `request_delete` takes `report_ids`, limited to the user's own reports; unknown numbers come back as `not_found` | 3 Postgres tests (by number, another user's number, a missing number); live: the owner saw exactly report 2, the CEO found nothing | `4f8f88f` |
 | 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | `ce856b0` |
 
 ### Live run on 2026-11-08 (denim manager)

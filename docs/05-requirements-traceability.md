@@ -36,7 +36,7 @@ brief allows.
 | 2. Only analysis questions, safe against malicious users | Prototype: input checks, prompt scope, refusals; safety eval cases | [Technical explanation §5](04-technical-explanation.md#safety-and-pii-masking) |
 | 2. PII must never appear in the output | Prototype: blocked columns, hashed IDs, Presidio on answers and reports | `src/retail_analyst/safety/` |
 | 2. Each user analyzes only products related to them | Prototype: brand scope applied inside every table before aggregation | `config/seed/demo.yaml`, SQL guard tests |
-| 3. "Delete all reports mentioning Client X" or "from this conversation" | Prototype: both supported through `request_delete` | [Example run](example-run.md#deleting-reports-needs-a-confirmation) |
+| 3. "Delete all reports mentioning Client X" or "from this conversation" | Prototype: both supported through `request_delete`, plus deleting by report number | [Example run](example-run.md#deleting-reports-needs-a-confirmation) |
 | 3. A strict confirmation without breaking UX | Prototype: one pause with the exact list; one word confirms, anything else cancels | [Architecture: Delete flow](02-architecture.md#delete-flow) |
 | 3. Users delete only their own reports | Prototype: owner filter on search, on the stored request and on the delete | Delete flow tests |
 | 4.1 Remember format preferences per user | Design: LangMem profile in the LangGraph store | P7 |

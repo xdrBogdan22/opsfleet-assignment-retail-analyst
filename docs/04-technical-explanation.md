@@ -165,12 +165,12 @@ only their brands, and safety cases in the eval.
 ### High-stakes oversight
 
 Implemented (P5). The model can start a delete but never finish one.
-`request_delete` finds the user's matching reports by full-text search and
-stores the exact list with an owner and an expiry. The graph pauses with
+`request_delete` finds the user's own reports by text in the title and body,
+by this conversation, or by report number, and stores the exact list with an
+owner and an expiry. The graph pauses with
 `interrupt()` and the CLI shows the list. Only `yes`, `y`, `delete` or
 `confirm` deletes, and only the stored IDs, once, for the same owner, before
-expiry. Any other answer cancels. "Reports from this conversation" works the
-same way with a conversation filter. LangGraph may re-run a node after a
+expiry. Any other answer cancels. LangGraph may re-run a node after a
 resume; the single-use check makes that harmless.
 `/open` copies a report into a private temporary folder for the browser. The
 CLI removes the copy when a delete is confirmed and the folder on exit, so a

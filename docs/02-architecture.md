@@ -273,9 +273,19 @@ delete node runs from the stored report IDs, not from model output or a new
 search. LangGraph restarts a node when it resumes [4], so the used confirmation
 makes a repeated delete harmless.
 
-Any reply other than an explicit confirmation cancels the action. "Reports we made
-in this conversation" uses the same flow, with the search limited to the
-conversation ID.
+Any reply other than an explicit confirmation cancels the action. The search
+finds the user's reports in one of three ways, and combined filters must all
+match:
+
+| The user says | The model passes | The search |
+|---|---|---|
+| "Delete all reports mentioning Client X" | `matching_text` | Full-text or exact text in the title and body |
+| "Delete the reports we made in this conversation" | `this_conversation` | The conversation ID |
+| "Delete report 46" | `report_ids` | Those report numbers |
+
+Every search is limited to the user's own reports, so another user's report
+number finds nothing. Numbers that match no report of the user come back as
+`not_found`, and the agent says so.
 
 ## Storage
 

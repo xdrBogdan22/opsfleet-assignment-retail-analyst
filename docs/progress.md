@@ -35,6 +35,7 @@ what comes next. Updated after every step.
 | 27 | Local Langfuse (`infra/langfuse/`, upstream compose v4.76.0); Mermaid fix: `graph` is a reserved word and broke the production diagram on GitHub | Live question: trace with 25 observations, 3 model calls, 2 tool calls, user and session; all 6 scores in ClickHouse; 5 diagrams render with mermaid-cli 11.4.2 | `4e05f88` |
 | 28 | Sentry turned on with a real DSN | A test `ZeroDivisionError` logged through the app's monitor reached Sentry as issue PYTHON-1, priority High | `34a524c` |
 | 29 | `/open` copies go to a private per-session temporary folder, removed on exit; a confirmed delete removes the copies of the listed reports | 1 CLI test; live delete of report 45 checked in Postgres | `5f4ab7e` |
+| 30 | Delete by report number: `request_delete` takes `report_ids`, limited to the user's own reports; unknown numbers come back as `not_found` | 3 Postgres tests (by number, another user's number, a missing number); live: the owner saw exactly report 2, the CEO found nothing | pending |
 | 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | `ce856b0` |
 
 ### Live run on 2026-11-08 (denim manager)
@@ -76,6 +77,7 @@ what comes next. Updated after every step.
 | After that, the judge still scored `q1-report` 0: its one-sentence end state drops how to open the report | The `/open` requirement moved to a deterministic `must_contain` check; the reference states the goal only |
 | Judge output still cut off at 8192 tokens on 2 cases, because Gemini 3 counts thinking tokens in the limit | `judge_max_tokens: 32768` |
 | Clean install without keys: the BigQuery test module built its client at import and crashed collection; a model unit test needed a key | Client created on first use; the unit test sets a fake key. Clean copy: 63 passed, 13 skipped. |
+| "Delete report 46" had no ID argument, so the model searched for the text "46"; it matched only because the report body contained "46.5%" | `report_ids` argument; the tool description tells the model never to search for a number as text |
 | Owner's live test: after deleting report 45, its HTML copy from `/open` stayed in the system temp folder and still opened in the browser | Copies live in a per-session private folder; confirmed deletes remove them, exit removes the folder |
 | Ports 5432 and 6379 were already taken on the host, so the upstream Langfuse compose file failed to start | The vendored copy publishes no host port for its Postgres and Redis; Langfuse reaches them on the Compose network |
 | Langfuse v4 no longer serves `GET /api/public/traces` or score reads; it answers that it runs in events-only mode | Traces checked with `/api/public/v2/observations`, scores in ClickHouse |

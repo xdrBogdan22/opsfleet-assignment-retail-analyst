@@ -20,6 +20,8 @@ save_report: >-
   items.
 
 request_delete: >-
-  Start deleting the user's saved reports. Give either a text the reports must
-  mention, or set this_conversation to true for reports made in this
-  conversation. The user confirms the exact list before anything is deleted.
+  Start deleting the user's saved reports. When the user names report numbers,
+  pass them as report_ids; never search for a number as text. Otherwise give a
+  text the reports must mention, or set this_conversation to true for reports
+  made in this conversation. Filters you combine must all match. The user
+  confirms the exact list before anything is deleted.

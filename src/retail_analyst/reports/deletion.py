@@ -22,10 +22,19 @@ class DeletePreview:
 
 
 def find_and_hold(
-    pool: Pool, owner_id: str, matching_text: str | None, conversation_id: str | None, minutes: int
+    pool: Pool,
+    owner_id: str,
+    matching_text: str | None,
+    conversation_id: str | None,
+    report_ids: list[int] | None,
+    minutes: int,
 ) -> DeletePreview | None:
-    """Finds the owner's matching reports and stores them as a pending request."""
-    conditions, params = [sql.SQL("owner_id = %s")], [owner_id]
+    """Finds the owner's reports that meet every given filter and stores them as a pending request."""
+    conditions: list[sql.Composable] = [sql.SQL("owner_id = %s")]
+    params: list[object] = [owner_id]
+    if report_ids:
+        conditions.append(sql.SQL("id = any(%s)"))
+        params.append(report_ids)
     if matching_text:
         conditions.append(sql.SQL("(search @@ websearch_to_tsquery('english', %s) or body_text ilike %s)"))
         params += [matching_text, f"%{matching_text}%"]
@@ -39,7 +48,7 @@ def find_and_hold(
         if not rows:
             return None
         reports = [(int(row["id"]), str(row["title"])) for row in rows]
-        description = matching_text or "reports from this conversation"
+        description = matching_text or ("reports from this conversation" if conversation_id else "reports by number")
         expires = dt.datetime.now(dt.UTC) + dt.timedelta(minutes=minutes)
         with conn.cursor(row_factory=scalar_row) as cur:
             request_id = cur.execute(

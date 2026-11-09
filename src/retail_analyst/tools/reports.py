@@ -33,12 +33,19 @@ def request_delete(
     ctx: Annotated[ToolContext, InjectedToolArg],
     matching_text: Annotated[str | None, Field(description="Text the reports must mention, such as a client")] = None,
     this_conversation: Annotated[bool, Field(description="Only reports made in this conversation")] = False,
+    report_ids: Annotated[
+        list[int] | None, Field(max_length=50, description="Report numbers the user named, such as 46 for /open 46")
+    ] = None,
 ) -> str:
-    if not matching_text and not this_conversation:
-        return json.dumps({"error": "Give matching_text, or set this_conversation to true."})
+    if not matching_text and not this_conversation and not report_ids:
+        return json.dumps({"error": "Give report_ids, matching_text, or set this_conversation to true."})
     conversation = ctx.conversation_id if this_conversation else None
     minutes = ctx.settings.safety.delete_confirmation_minutes
-    preview = find_and_hold(ctx.db, ctx.scope.user_id, matching_text, conversation, minutes)
+    preview = find_and_hold(ctx.db, ctx.scope.user_id, matching_text, conversation, report_ids, minutes)
     if preview is None:
         return json.dumps({"matches": 0, "message": "No saved reports match. Tell the user nothing was deleted."})
-    return json.dumps({DELETE_REQUEST: preview.request_id, "matches": len(preview.reports)})
+    result: dict[str, object] = {DELETE_REQUEST: preview.request_id, "matches": len(preview.reports)}
+    found = {report_id for report_id, _ in preview.reports}
+    if missing := sorted(set(report_ids or []) - found):
+        result["not_found"] = missing
+    return json.dumps(result)

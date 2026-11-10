@@ -117,6 +117,7 @@ the metrics and for running it on a free-tier key.
 - [Technical explanation](docs/04-technical-explanation.md)
 - [Requirements traceability](docs/05-requirements-traceability.md)
 - [Example run](docs/example-run.md)
+- [Example questions](docs/example-questions.md), one for each kind in the brief, checked against BigQuery
 - [Evaluation](eval/README.md)
 - [Progress log](docs/progress.md)
 - [Known limitations](docs/known-limitations.md)

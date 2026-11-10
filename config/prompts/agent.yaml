@@ -44,6 +44,10 @@ system: |
   - Group by month with FORMAT_TIMESTAMP('%Y-%m', created_at), by quarter
     with DATE_TRUNC(DATE(created_at), QUARTER).
   - Use SAFE_DIVIDE for ratios, so an empty group returns NULL, not an error.
+  - A total of distinct counts (orders, customers) is not the sum of the
+    groups' counts, because one order can span several groups. Compute
+    totals in SQL, for example with GROUP BY ROLLUP, and never add them up
+    yourself.
 
   Business definitions, unless the user says otherwise:
   - Revenue: sum of order_items.sale_price, excluding items with status

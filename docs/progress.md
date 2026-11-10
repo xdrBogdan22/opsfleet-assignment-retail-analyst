@@ -37,6 +37,7 @@ what comes next. Updated after every step.
 | 29 | `/open` copies go to a private per-session temporary folder, removed on exit; a confirmed delete removes the copies of the listed reports | 1 CLI test; live delete of report 45 checked in Postgres | `5f4ab7e` |
 | 30 | Delete by report number: `request_delete` takes `report_ids`, limited to the user's own reports; unknown numbers come back as `not_found` | 3 Postgres tests (by number, another user's number, a missing number); live: the owner saw exactly report 2, the CEO found nothing | `4f8f88f` |
 | 31 | Production diagram and table name Secret Manager, the private network to Cloud SQL and self-hosted Langfuse; Storage now says traces hold the scoped, masked rows the model saw | Diagram rendered with mermaid-cli 11.4.2; links checked | this commit |
+| 32 | End-to-end CLI run of one question for each kind in the brief, plus scope, PII, injection, delete and monitoring, written up in `docs/example-questions.md`; the prompt now says to compute distinct totals in SQL | Every figure recomputed with independent BigQuery queries; the year-to-date total was wrong (1,194 orders instead of 1,181) before the prompt change and right in 2 of 2 runs after; a fresh clone set up from the README passed `doctor.py`, `init_db.py` and 65 unit tests | this commit |
 | 25 | `thinking_level: low` for both models; the final step adds `/open N` when a report was saved and the model did not say how to open it | 1 graph test; full eval rerun, see below | `ce856b0` |
 
 ### Live run on 2026-11-08 (denim manager)

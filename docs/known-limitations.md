@@ -55,3 +55,88 @@ answered it.
 that ask for breakdowns, as report requests already get more time; or let the
 model combine breakdowns into one query with `GROUP BY ROLLUP`. Either needs a
 check that the 30-second limit still holds.
+
+## 4. Whole-row selects and grouped aggregates pass the demographics rule
+
+**Found in a code review on 2026-11-10.** Reproduced with sqlglot's parser,
+not yet run on BigQuery. `_check_demographics_with_customer_id` in
+`safety/sql_guard.py` misses two shapes:
+
+- `SELECT u FROM users u` returns the whole row as a struct: the hashed ID
+  next to age, gender, city, state and country. sqlglot sees one column named
+  `u`, so neither a customer ID nor a demographic column is found.
+- `SELECT id, ANY_VALUE(city), MAX(age) FROM users GROUP BY id` passes,
+  because columns inside aggregates are skipped. Grouped by customer ID, the
+  aggregate is the raw value.
+
+Names, emails and addresses are still never exposed: the scoped subquery has
+no such columns. What leaks is a hashed ID with the demographics that can
+single out a person. `min_group_size` in `config/data/safety.yaml` is not
+enforced either.
+
+**Options.**
+
+| Option | Effect | Cost or risk |
+|---|---|---|
+| Reject a column whose name is a table alias of its SELECT | Closes the whole-row struct | One more AST rule; `TO_JSON_STRING(u)` and similar need the same check |
+| When a customer ID is selected or grouped on, reject demographic columns even inside aggregates | Closes `ANY_VALUE` and `MAX` | Blocks "top customers with their average age"; such questions need a breakdown without IDs |
+| Enforce `min_group_size` by wrapping demographic breakdowns in `HAVING COUNT(DISTINCT user_id) >= 10` | Small groups disappear from results | Changes totals; the answer must say rows were hidden |
+| Authorized views that expose demographics only in pre-aggregated form | Removes the class of problem in production | Design change; fewer free-form questions |
+
+## 5. The ID hash salt can be read by a query
+
+**Found in a code review on 2026-11-10.** Reproduced with sqlglot's parser,
+not yet run on BigQuery. The salt is passed as the query parameter
+`@id_salt` to every query, and the SQL guard does not reject parameters in
+the model's SQL, so `SELECT @id_salt` returns it. With the salt and about
+100,000 integer customer IDs, every hashed code can be reversed in seconds.
+
+**Options.** Reject any `exp.Parameter` in the model's SQL before rewriting,
+since the model never needs one; that is a one-line rule with a test. In
+production, compute the hash inside the authorized view or a persistent UDF,
+so the salt never travels with a query.
+
+## 6. Answering a clarifying question uses up the time limit
+
+**Found in a code review on 2026-11-10.** `started_at` is set when the
+question arrives, and `agent` in `agent/graph.py` compares the elapsed time
+with the limit. The time the user spends reading and answering a clarifying
+question counts too. A user who answers after 30 seconds gets the forced
+final answer, without tools and so without data.
+
+**Options.** Let the `clarify` node move `started_at` forward by the time
+spent in the pause, or give the question a fresh time limit after the
+answer. Either needs a graph test with a slow answer.
+
+## 7. Conversation history is never trimmed
+
+**Found in a code review on 2026-11-10.** Every turn sends the whole
+conversation, including every earlier query result, to the model. Cost and
+latency grow with the length of the conversation, and a long one can reach
+the time limit before any new query runs.
+
+**Options.** Keep earlier answers but replace earlier tool results with a
+short note, using LangChain's `trim_messages` or a summary step; or keep the
+last few turns in full. The eval should include a long conversation before
+and after.
+
+## 8. The time limit is checked only before a model call
+
+**Found in a code review on 2026-11-10.** The 30 and 120 second limits in
+`config/agent/limits.yaml` are described as hard stops, but `agent` checks
+them only on entry. A model call (up to 20 seconds) and queries (up to the
+BigQuery timeout each) that start just before the limit run to the end.
+
+**Options.** Pass the remaining time as the timeout of the model call and of
+each query, or describe the limits as soft in the config comments.
+
+## 9. The clarifying question skips the output guard
+
+**Found in a code review on 2026-11-10.** The question and options of
+`ask_clarification` reach the user through the `clarify` interrupt without
+passing `safety/output_guard.py`. The model never sees personal columns, so
+the risk is low, but it breaks the rule that all text reaching the user
+passes the guard.
+
+**Options.** Run the question and each option through `redact` in the tool
+or in the `clarify` node.

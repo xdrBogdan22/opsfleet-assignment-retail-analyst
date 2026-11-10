@@ -22,7 +22,9 @@ Vertex AI in the same cloud (P16).
 | Warehouse | BigQuery, through authorized views | The agent never reads the raw tables |
 | App data | Cloud SQL for PostgreSQL with pgvector | One store for conversation state, reports, delete requests, personas, preferences and Golden trios |
 | Golden source | Cloud Storage | Versioned files of analyst trios |
-| Tracing | Langfuse | Every model and tool call of a conversation, with scores |
+| Secrets | Secret Manager | API keys, the database password and the hash salt, outside the image |
+| Network | Direct VPC egress | Cloud SQL has only a private address |
+| Tracing | Langfuse, self-hosted in the same project | Every model and tool call of a conversation, with scores. Traces hold the scoped, masked rows the model saw, so they stay in the company's project. |
 | Errors | Sentry | Crash and error alerts |
 
 Scaling for a sudden rise is a configuration change, not a redesign: more

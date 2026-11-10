@@ -3,6 +3,24 @@
 Technical assignment for OpsFleet. The goal is a data analysis chat agent for
 retail executives, built on BigQuery's `thelook_ecommerce` dataset.
 
+## For reviewers
+
+Each deliverable of the [brief](docs/client-requirements/initial-requirements.md)
+and where it is:
+
+| Deliverable | Where |
+|---|---|
+| 1. Architecture diagram, services, compute and data stores | [Architecture](docs/02-architecture.md) |
+| 2.1 Reasoning for cloud services, models and frameworks | [Technical explanation §1](docs/04-technical-explanation.md#1-choices-and-reasons) |
+| 2.2 Data flow between components | [Technical explanation §2](docs/04-technical-explanation.md#2-data-flow) |
+| 2.3 Error handling and fallback | [Technical explanation §3](docs/04-technical-explanation.md#3-error-handling-and-fallback) |
+| 2.4 Setup instructions and example run | [Setup](#setup) below, [Example run](docs/example-run.md) |
+| 2.5 How each requirement is handled | [Technical explanation §5](docs/04-technical-explanation.md#5-how-each-requirement-is-handled) |
+| Working prototype: CLI chat with safety, delete confirmation, resilience and observability | This repository; [Run the chat](#run-the-chat) |
+| Framework choice, reasons and experience | [Technology decisions](docs/01-technology-decisions.md) |
+
+[Requirements traceability](docs/05-requirements-traceability.md) maps every
+sentence of the brief to where it is handled.
 
 ## Setup
 
@@ -64,11 +82,12 @@ uv run --frozen retail-analyst --user denim_manager
 Demo users: `ceo` sees every brand, `denim_manager` and `outdoor_manager` see
 only their brands (`config/seed/demo.yaml`). Ask for a report and open it with
 `/open <id>`. Ask to delete reports, for example "Delete all reports mentioning
-Acme", and confirm the listed reports with `yes`; any other answer cancels. Type `/new` for a new conversation and `/quit` to leave. 
+Acme", and confirm the listed reports with `yes`; any other answer cancels.
+Type `/new` for a new conversation and `/quit` to leave.
 
 ### Example questions
 
-[Example questions](docs/example-questions.md) has one question for each kind
+[Example run](docs/example-run.md) has one question for each kind
 the brief lists, run end to end through the CLI on 2026-11-10, with the full
 answers and every figure checked against an independent BigQuery query:
 
@@ -130,16 +149,23 @@ the metrics and for running it on a free-tier key.
 
 ## Contents
 
-- [Technology decisions](docs/01-technology-decisions.md)
-- [Architecture](docs/02-architecture.md)
-- [Design proposals](docs/03-design-proposals.md)
-- [Technical explanation](docs/04-technical-explanation.md)
-- [Requirements traceability](docs/05-requirements-traceability.md)
-- [Example run](docs/example-run.md)
-- [Example questions](docs/example-questions.md), one for each kind in the brief, checked against BigQuery
+The design, in reading order:
+
+- [Technology decisions](docs/01-technology-decisions.md): the framework choice
+- [Architecture](docs/02-architecture.md): the high-level design and its diagrams
+- [Design decisions](docs/03-design-decisions.md): options and sources behind each choice, P1 to P22
+- [Technical explanation](docs/04-technical-explanation.md): how it works and how each requirement is solved
+- [Requirements traceability](docs/05-requirements-traceability.md): the brief, sentence by sentence
+- [Example run](docs/example-run.md): verified CLI sessions
+
+Project notes:
+
 - [Evaluation](eval/README.md)
 - [Progress log](docs/progress.md)
 - [Known limitations](docs/known-limitations.md)
-- [Client questions](docs/client-requirements/open-questions.md)
+
+From the client:
+
 - [Client requirements](docs/client-requirements/initial-requirements.md)
+- [Client questions](docs/client-requirements/open-questions.md)
 - [BigQuery starter code](docs/client-requirements/big_query.py)

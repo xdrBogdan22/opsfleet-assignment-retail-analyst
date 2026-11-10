@@ -1,12 +1,12 @@
-# Design proposals
+# Design decisions
 
-These are proposals to review before the architecture is final. Each one states
-the options, the constraints and a recommendation. Evidence was collected on
-2026-11-07 and 2026-11-08. Vendor blogs and price trackers are marked as weaker
-sources.
+The reasons behind each design choice: the options compared, the constraints
+and the decision, with sources. The other documents cite them as P1 to P22.
+Evidence was collected on 2026-11-07 and 2026-11-08. Vendor blogs and price
+trackers are marked as weaker sources.
 
-Status: P1 to P21 decided on 2026-11-08. The client answered on 2026-11-08, which
-changed P4, P10, P12, P17 and P22. All changes were approved the same day. Each item names its decision on its first line.
+All items were decided on 2026-11-08. The client's answers that day changed
+P4, P10, P12, P17 and P22. Each item names its decision on its first line.
 
 The brief asks the prototype to support only safety and PII, the delete
 confirmation, resilience and observability. The other requirements are design
@@ -53,12 +53,12 @@ Verified on the development machine: Postgres 18.3 with pgvector 0.8.7.
 ## P3. Golden Knowledge retrieval
 
 This is the decision record. The full design, with a worked example, is in
-[Architecture: Golden Knowledge](02-architecture.md#golden-knowledge).
+[Technical explanation: hybrid intelligence](04-technical-explanation.md#hybrid-intelligence).
 
 Decision: hybrid search on masked questions, with a small recency weight. The
 technical explanation cites the studies in the table below.
 
-Your dynamic few-shot idea matches the literature.
+Dynamic few-shot examples are well supported in the literature.
 
 | Source | Finding | What we take |
 |---|---|---|
@@ -89,7 +89,7 @@ keeps the trio out of retrieval.
 
 Decision: the four layers in the recommended order below.
 
-Your layers are right, but the order of trust changes. OWASP says input screening
+Several layers are needed, and the order of trust matters. OWASP says input screening
 "is not a security boundary" and places permission checks in execution code outside
 the model [9]. A guardrail library therefore cannot be the main protection.
 
@@ -183,7 +183,7 @@ prototype.
 
 Keep this simple:
 
-1. A user correction is saved as a note for that user only.
+1. A correction about format or depth updates that user's profile only (P7).
 2. A rated answer or correction can become a candidate trio.
 3. An analyst approves or rejects the candidate.
 4. Approved trios enter the Golden Bucket, and the case joins the eval set.
@@ -195,7 +195,7 @@ also turns failures into durable regression tests [14].
 
 Decision: the checks and repair limits in the table below.
 
-Your retry idea is the right base. The name of the library is `sqlglot`.
+Retrying with the error message is the base, and `sqlglot` does the parsing.
 
 | Method | Cost | Decision |
 |---|---|---|
@@ -270,7 +270,7 @@ safety cases. The prototype implements a minimal Ragas run only if time allows.
 Otherwise the eval stays documented. The evaluation document will explain every
 metric in plain words, as in the glossary at the end of this section.
 
-Your three perspectives work, and I would add four things.
+The evaluation covers three perspectives, plus four additions.
 
 | Perspective | Prototype | Notes |
 |---|---|---|
@@ -306,7 +306,7 @@ Metrics in plain words. Each Ragas score runs from 0 to 1 [24].
 
 Decision: at most 2 questions, only when the meaning changes the result.
 
-Your clarification node has research support. AmbiSQL detects ambiguity and asks
+A clarification step has research support. AmbiSQL detects ambiguity and asks
 multiple-choice questions [28]. PRACTIQ defines a question as ambiguous when it has
 several valid interpretations for the schema [29].
 
@@ -380,7 +380,7 @@ The CLI collects feedback with `/good` and `/bad`.
 
 Decision: a versioned persona table in Postgres.
 
-Your approach is good. Postgres stores versioned persona records, and each turn loads
+Postgres stores versioned persona records, and each turn loads
 the active one. The prototype changes it through a CLI command or SQL. The product
 would expose presets and short custom text in an admin screen. Safety rules stay
 outside the persona.

@@ -8,7 +8,7 @@ description: Add a new capability to the retail analyst agent as a tool, such as
 A capability is a tool: the model decides when to call it, code decides what
 it may do. Follow the steps in order and stop to ask when a step's question
 has no clear answer. The worked `send_report` example in
-`docs/02-architecture.md` ("Extending the agent") shows every step in code.
+`docs/04-technical-explanation.md` ("Extensibility") shows every step in code.
 
 ## 1. Classify the tool
 
@@ -90,5 +90,7 @@ Langfuse.
 ## 7. Record it
 
 - A row in `docs/progress.md`: what was added and how it was tested.
-- If it adds a new pattern, a line in `docs/02-architecture.md`.
+- If it adds a new pattern, a line in `docs/04-technical-explanation.md`
+  ("Extensibility"); if it adds a service, the diagram in
+  `docs/02-architecture.md`.
 - Anything left open goes to `docs/known-limitations.md`.

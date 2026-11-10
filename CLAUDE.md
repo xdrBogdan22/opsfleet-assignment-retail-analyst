@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 A CLI data analyst agent: LangGraph, Gemini, BigQuery `thelook_ecommerce`,
-Postgres. Design in `docs/02-architecture.md`, build log in `docs/progress.md`.
+Postgres. High-level design in `docs/02-architecture.md`, how each requirement
+works in `docs/04-technical-explanation.md`, build log in `docs/progress.md`.
 
 ## Commands
 

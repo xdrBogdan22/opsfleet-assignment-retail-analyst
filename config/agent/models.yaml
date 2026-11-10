@@ -1,6 +1,6 @@
 # Models are tried in order. Only enabled entries are used. The client asked
 # for fallback between Gemini models only, with other providers present but
-# switched off (docs/03-design-proposals.md, P17).
+# switched off (docs/03-design-decisions.md, P17).
 
 models:
   # Primary. Matches or beats far more expensive models on analyst-style

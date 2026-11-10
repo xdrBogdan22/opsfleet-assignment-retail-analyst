@@ -9,7 +9,7 @@ Evidence was collected on 2026-11-07.
 
 **Choice:** LangGraph.
 
-**Result:** LangGraph 4.20, Agno 4.15. That gap is too small to decide on
+**Result:** LangGraph 4.30, Agno 4.15. That gap is too small to decide on
 scores alone, so the decision rests on the two heaviest criteria. LangGraph is
 stronger on safety control and human confirmation, and those are the areas where
 a mistake could expose personal data or delete the wrong report. Agno needs less
@@ -55,11 +55,11 @@ evidence below, not measurements. The total is the weighted average.
 | Delivery in 12 hours | 10 | 4 | 3 | 4 | 4 | 4 | 3 |
 | Production path | 10 | 4 | 5 | 4 | 4 | 3 | 3 |
 | Maturity | 5 | 3 | 5 | 4 | 4 | 3 | 3 |
-| Personal experience | 10 | 5 | 2 | 2 | 2 | 2 | 2 |
-| **Total** | 100 | **4.15** | **4.20** | **3.80** | **3.55** | **3.45** | **2.60** |
+| Personal experience | 10 | 5 | 3 | 2 | 2 | 2 | 2 |
+| **Total** | 100 | **4.15** | **4.30** | **3.80** | **3.55** | **3.45** | **2.60** |
 
-Personal experience is provisional. Agno is 5 because I rate it as my strongest
-framework. The other scores are placeholders until I confirm them.
+Agno is 5 because it is my strongest framework. LangGraph is 3: I have medium
+experience with it. The other four are at 2.
 
 ADK and Strands have lower resilience scores partly because I did not find
 model fallback documentation for them. That is a gap in the evidence, not proof
@@ -69,11 +69,10 @@ that the feature is missing.
 
 | Scenario | First | Second | Third |
 |---|---|---|---|
-| Base weights | LangGraph 4.20 | Agno 4.15 | Pydantic AI 3.80 |
+| Base weights | LangGraph 4.30 | Agno 4.15 | Pydantic AI 3.80 |
 | Experience removed | LangGraph 4.44 | Agno 4.06 | Pydantic AI 4.00 |
-| LangGraph experience is 3 | LangGraph 4.30 | Agno 4.15 | Pydantic AI 3.80 |
 | LangGraph experience is 1 | Agno 4.15 | LangGraph 4.10 | Pydantic AI 3.80 |
-| Production weight moved to delivery | Agno 4.15 | LangGraph 4.00 | Pydantic AI 3.80 |
+| Production weight moved to delivery | Agno 4.15 | LangGraph 4.10 | Pydantic AI 3.80 |
 
 The last scenario treats production as an HLD topic and judges only the
 12-hour prototype. Agno wins there. LangGraph wins when framework capability
@@ -206,8 +205,8 @@ LangGraph restarts a node after an interrupt, so the design follows these rules:
 > be tested alone. `interrupt()` with a checkpointer stops a delete, waits for a
 > person and resumes from saved state. The graph costs more code than a lighter
 > framework. I accept that cost, and I keep SQL validation, brand scoping and
-> report ownership in plain application code. My experience with LangGraph: to
-> be completed.
+> report ownership in plain application code. My experience with LangGraph is
+> medium.
 
 ### References
 

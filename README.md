@@ -66,6 +66,25 @@ only their brands (`config/seed/demo.yaml`). Ask for a report and open it with
 `/open <id>`. Ask to delete reports, for example "Delete all reports mentioning
 Acme", and confirm the listed reports with `yes`; any other answer cancels. Type `/new` for a new conversation and `/quit` to leave. 
 
+### Example questions
+
+[Example questions](docs/example-questions.md) has one question for each kind
+the brief lists, run end to end through the CLI on 2026-11-10, with the full
+answers and every figure checked against an independent BigQuery query:
+
+| Kind | Question |
+|---|---|
+| Database structure | What data is available, and what kinds of analysis can I do with it? |
+| Customer behavior | Who were our top 5 customers by total spend in 2025, with their number of orders? |
+| Time-based metrics | Show monthly revenue for each month from January to June 2026. / Year-to-date revenue in 2026 by brand, highest first. |
+| Product performance | Compare Diesel and True Religion in 2025: revenue, items sold, average sale price and return rate. Why do they perform differently? |
+| Multi-step with a report | Why did our revenue change in May 2026 compared with April 2026? Break it down by product category, then save a report with action items. |
+
+It also shows a manager asking about a brand outside their scope, asking for
+customer emails, trying a prompt injection and deleting a report, then the CEO
+asking across all brands, with that turn's Langfuse scores. Try them as
+`denim_manager`, `outdoor_manager` and `ceo`.
+
 ### Monitoring (optional)
 
 Without keys the app writes one JSON line per turn to `retail_analyst.log`.

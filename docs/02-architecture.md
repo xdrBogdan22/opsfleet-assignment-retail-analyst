@@ -62,7 +62,7 @@ flowchart TB
     sqlgate --> bq[("BigQuery authorized views")]
     bq --> raw[("Partitioned transaction tables")]
 
-    agent --> pg[("Cloud SQL Postgres with pgvector")]
+    agent -- "Direct VPC egress" --> pg[("Cloud SQL Postgres with pgvector, private IP")]
     adminapi --> pg
     gcs[("Golden Bucket on Cloud Storage")] --> ingest
     adminapi --> gcs
@@ -70,8 +70,9 @@ flowchart TB
     prefs --> pg
     quality --> langfuse
 
-    agent --> langfuse["Langfuse traces and scores"]
+    agent --> langfuse["Langfuse traces and scores, self-hosted on GKE"]
     api --> sentry["Sentry errors and alerts"]
+    secrets["Secret Manager"] -.-> run
 ```
 
 | Component | Service | Why |
@@ -85,7 +86,9 @@ flowchart TB
 | Application data | Cloud SQL for PostgreSQL with pgvector | One store for conversation state, reports, preferences, personas, trios and audit rows [6]. See P2. |
 | Golden source | Cloud Storage | Keeps the analysts' trios as versioned files |
 | Output check | Presidio inside the agent container | Detects personal data in the final text. See P4. |
-| Agent tracing | Langfuse | Model calls, tool calls, SQL, tokens and user scores, grouped by conversation. See P14. |
+| Secrets | Secret Manager | API keys, the database password and the ID hash salt reach Cloud Run as secrets, never in the image or the repository [13] |
+| Network | Direct VPC egress to a private IP | Cloud SQL has no public address; Cloud Run reaches it through the VPC [14] |
+| Agent tracing | Langfuse, self-hosted in the same project | Model calls, tool calls, SQL, tokens and user scores, grouped by conversation. Traces hold the rows the model saw, so they stay in the company's project. Langfuse's Terraform module for GCP runs it on GKE with Cloud SQL, Memorystore and Cloud Storage [15]. See P14. |
 | Errors and alerts | Sentry | Crashes, error spikes and email alerts. See P14. |
 
 ### Brand scope in production
@@ -301,10 +304,12 @@ All application data sits in one Postgres database (P2).
 | Personas | `personas`, versioned | All versions kept |
 | User preferences | LangGraph store, written by LangMem | Until reset |
 | Golden trios | `golden_trios`: masked question, embedding, text index, approval | Versioned |
-| Traces | Langfuse | 30 days on the free plan [13] |
+| Traces | Langfuse, self-hosted | Set by the company, for example 30 days |
 
-Traces hold query text, row counts and masked summaries. They do not hold raw rows
-or secrets.
+Traces hold the messages, the SQL and the rows the model saw. Those rows are
+already scoped to the user's brands, with personal columns removed and customer
+IDs hashed, so a trace holds nothing the user could not see. Traces never hold
+secrets. Sentry receives no prompts or rows.
 
 ## Golden Knowledge
 
@@ -768,4 +773,6 @@ tool to its eval case.
 10. [sqlglot qualify columns](https://sqlglot.com/sqlglot/optimizer/qualify_columns.html)
 11. [Estimate and control BigQuery costs](https://docs.cloud.google.com/bigquery/docs/best-practices-costs)
 12. [OWASP LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)
-13. [Langfuse pricing](https://langfuse.com/pricing)
+13. [Configure secrets for Cloud Run services](https://docs.cloud.google.com/run/docs/configuring/services/secrets)
+14. [Connect to Cloud SQL for PostgreSQL from Cloud Run](https://docs.cloud.google.com/sql/docs/postgres/connect-run)
+15. [Langfuse Terraform module for GCP](https://github.com/langfuse/langfuse-terraform-gcp)
